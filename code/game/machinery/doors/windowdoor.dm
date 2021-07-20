@@ -20,7 +20,7 @@
 /obj/machinery/door/window/New()
 	..()
 	update_nearby_tiles()
-	if (src.req_access && src.req_access.len)
+	if(LAZYLEN(req_access))
 		src.icon_state = "[src.icon_state]"
 		src.base_state = src.icon_state
 	return
@@ -38,12 +38,10 @@
 	var/obj/item/weapon/airlock_electronics/ae
 	if(!electronics)
 		ae = new/obj/item/weapon/airlock_electronics( src.loc )
-		if(!src.req_access)
-			src.check_access()
-		if(src.req_access.len)
-			ae.conf_access = src.req_access
-		else if (src.req_one_access.len)
-			ae.conf_access = src.req_one_access
+		if(LAZYLEN(req_access))
+			ae.conf_access = req_access
+		else if (LAZYLEN(req_one_access))
+			ae.conf_access = req_one_access
 			ae.one_access = 1
 	else
 		ae = electronics
@@ -52,14 +50,14 @@
 	if(operating == -1)
 		ae.icon_state = "door_electronics_smoked"
 		operating = 0
-	src.density = 0
+	src.density = FALSE
 	playsound(src, "shatter", 70, 1)
 	if(display_message)
 		visible_message("[src] shatters!")
 	qdel(src)
 
 /obj/machinery/door/window/Destroy()
-	density = 0
+	density = FALSE
 	update_nearby_tiles()
 	return ..()
 
@@ -119,7 +117,7 @@
 	sleep(10)
 
 	explosion_resistance = 0
-	density = 0
+	density = FALSE
 	update_icon()
 	update_nearby_tiles()
 
@@ -230,7 +228,7 @@
 				if (src.base_state == "right" || src.base_state == "rightsecure")
 					wa.facing = "r"
 				wa.set_dir(src.dir)
-				wa.anchored = 1
+				wa.anchored = TRUE
 				wa.created_name = name
 				wa.state = "02"
 				wa.step = 2
@@ -241,12 +239,10 @@
 				else
 					if(!electronics)
 						wa.electronics = new/obj/item/weapon/airlock_electronics()
-						if(!src.req_access)
-							src.check_access()
-						if(src.req_access.len)
-							wa.electronics.conf_access = src.req_access
-						else if (src.req_one_access.len)
-							wa.electronics.conf_access = src.req_one_access
+						if(LAZYLEN(req_access))
+							wa.electronics.conf_access = req_access
+						else if (LAZYLEN(req_one_access))
+							wa.electronics.conf_access = req_one_access
 							wa.electronics.one_access = 1
 					else
 						wa.electronics = electronics

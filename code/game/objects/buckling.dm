@@ -1,7 +1,7 @@
 
 
 /atom/movable
-	var/can_buckle = 0
+	var/can_buckle = FALSE
 	var/buckle_movable = 0
 	var/buckle_dir = 0
 	var/buckle_lying = -1 //bed-like behavior, forces mob.lying = buckle_lying if != -1
@@ -18,7 +18,7 @@
 
 	if(can_buckle && has_buckled_mobs())
 		if(buckled_mobs.len > 1)
-			var/unbuckled = input(user, "Who do you wish to unbuckle?","Unbuckle Who?") as null|mob in buckled_mobs
+			var/unbuckled = tgui_input_list(user, "Who do you wish to unbuckle?","Unbuckle Who?", buckled_mobs)
 			if(user_unbuckle_mob(unbuckled, user))
 				return TRUE
 		else

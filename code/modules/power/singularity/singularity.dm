@@ -7,11 +7,11 @@ GLOBAL_LIST_BOILERPLATE(all_singularities, /obj/singularity)
 	desc = "A gravitational singularity."
 	icon = 'icons/obj/singularity.dmi'
 	icon_state = "singularity_s1"
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 	plane = ABOVE_PLANE
 	light_range = 6
-	unacidable = 1 //Don't comment this out.
+	unacidable = TRUE //Don't comment this out.
 
 	var/current_size = 1
 	var/allowed_size = 1
@@ -465,15 +465,15 @@ GLOBAL_LIST_BOILERPLATE(all_singularities, /obj/singularity)
 	move_self = 0
 	switch (current_size)
 		if(STAGE_ONE)
-			overlays += image('icons/obj/singularity.dmi',"chain_s1")
+			add_overlay(image('icons/obj/singularity.dmi',"chain_s1"))
 		if(STAGE_TWO)
-			overlays += image('icons/effects/96x96.dmi',"chain_s3")
+			add_overlay(image('icons/effects/96x96.dmi',"chain_s3"))
 		if(STAGE_THREE)
-			overlays += image('icons/effects/160x160.dmi',"chain_s5")
+			add_overlay(image('icons/effects/160x160.dmi',"chain_s5"))
 		if(STAGE_FOUR)
-			overlays += image('icons/effects/224x224.dmi',"chain_s7")
+			add_overlay(image('icons/effects/224x224.dmi',"chain_s7"))
 		if(STAGE_FIVE)
-			overlays += image('icons/effects/288x288.dmi',"chain_s9")
+			add_overlay(image('icons/effects/288x288.dmi',"chain_s9"))
 
 /obj/singularity/proc/on_release()
 	chained = 0

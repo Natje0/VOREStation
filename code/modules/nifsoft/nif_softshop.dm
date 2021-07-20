@@ -13,7 +13,7 @@
 	var/global/list/starting_legal_nifsoft
 	var/global/list/starting_illegal_nifsoft
 
-	density = 0
+	density = FALSE
 	opacity = 0
 	var/datum/entopic/entopic
 
@@ -94,6 +94,7 @@
 			product.price = initial(NS.cost)
 			product.amount = 10
 			product.category = category
+			product.item_desc = initial(NS.desc)
 
 			product_records.Add(product)
 

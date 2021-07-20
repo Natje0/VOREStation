@@ -58,7 +58,7 @@
 	icon = 'icons/turf/shuttle_parts.dmi'
 	icon_state = "nozzle"
 	opacity = 1
-	density = 1
+	density = TRUE
 	can_atmos_pass = ATMOS_PASS_NO
 	connect_types = CONNECT_TYPE_REGULAR|CONNECT_TYPE_FUEL
 
@@ -150,7 +150,7 @@
 	if(!is_on())
 		return 0
 	if(!check_fuel() || (use_power_oneoff(charge_per_burn) < charge_per_burn) || check_blockage())
-		audible_message(src,"<span class='warning'>[src] coughs once and goes silent!</span>")
+		audible_message(src,"<span class='warning'>[src] coughs once and goes silent!</span>", runemessage = "sputtercough")
 		update_use_power(USE_POWER_OFF)
 		return 0
 
@@ -188,7 +188,7 @@
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "smoke"
 	light_color = "#ed9200"
-	anchored = 1
+	anchored = TRUE
 
 /obj/effect/engine_exhaust/New(var/turf/nloc, var/ndir, var/flame)
 	..(nloc)

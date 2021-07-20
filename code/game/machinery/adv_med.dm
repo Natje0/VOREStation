@@ -6,8 +6,8 @@
 	name = "Body Scanner"
 	icon = 'icons/obj/Cryogenic2.dmi'
 	icon_state = "body_scanner_0"
-	density = 1
-	anchored = 1
+	density = TRUE
+	anchored = TRUE
 	circuit = /obj/item/weapon/circuitboard/body_scanner
 	use_power = USE_POWER_IDLE
 	idle_power_usage = 60
@@ -486,7 +486,7 @@
 
 			if(unknown_body)
 				imp += "Unknown body present:"
-			if(!AN && !open && !infected & !imp)
+			if(!AN && !open && !infected && !imp)
 				AN = "None:"
 			if(!(e.status & ORGAN_DESTROYED))
 				dat += "<td>[e.name]</td><td>[e.burn_dam]</td><td>[e.brute_dam]</td><td>[robot][bled][AN][splint][open][infected][imp][internal_bleeding][lung_ruptured][o_dead]</td>"
@@ -546,8 +546,8 @@
 	icon = 'icons/obj/Cryogenic2.dmi'
 	icon_state = "body_scannerconsole"
 	dir = 8
-	density = 0
-	anchored = 1
+	density = FALSE
+	anchored = TRUE
 	circuit = /obj/item/weapon/circuitboard/scanner_console
 	var/printing = null
 

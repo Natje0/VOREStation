@@ -3,7 +3,7 @@
 	desc = "You sit in this. Either by will or force."
 	icon = 'icons/obj/wheelchair.dmi'
 	icon_state = "wheelchair"
-	anchored = 0
+	anchored = FALSE
 	buckle_movable = 1
 
 	var/folded_type = /obj/item/wheelchair
@@ -68,7 +68,7 @@
 			user.pulledby = null
 			to_chat(user, "<span class='warning'>You lost your grip!</span>")
 		return
-	if(has_buckled_mobs() && pulling && user in buckled_mobs)
+	if(has_buckled_mobs() && pulling && (user in buckled_mobs))
 		if(pulling.stat || pulling.stunned || pulling.weakened || pulling.paralysis || pulling.lying || pulling.restrained())
 			pulling.pulledby = null
 			pulling = null
@@ -161,7 +161,7 @@
 /obj/structure/bed/chair/wheelchair/CtrlClick(var/mob/user)
 	if(in_range(src, user))
 		if(!ishuman(user))	return
-		if(has_buckled_mobs() && user in buckled_mobs)
+		if(has_buckled_mobs() && (user in buckled_mobs))
 			to_chat(user, "<span class='warning'>You realize you are unable to push the wheelchair you sit in.</span>")
 			return
 		if(!pulling)

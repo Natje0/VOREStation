@@ -14,9 +14,14 @@
 		handle_attack_delay(A, melee_attack_delay) // This will sleep this proc for a bit, which is why waitfor is false.
 
 	// Cooldown testing is done at click code (for players) and interface code (for AI).
-	setClickCooldown(get_attack_speed())
+	// VOREStation Edit Start: Simplemob Injury
+	if(injury_enrages)
+		setClickCooldown(get_attack_speed() - ((injury_level / 2) SECONDS)) // Increase how fast we can attack by our injury level / 2
+	else
+		setClickCooldown(get_attack_speed() + ((injury_level / 2) SECONDS)) // Delay how fast we can attack by our injury level / 2
+	// VOREStation Edit Stop: Simplemob Injury
 
-	// Returns a value, but will be lost if 
+	// Returns a value, but will be lost if
 	. = do_attack(A, their_T)
 
 	if(melee_attack_delay)
@@ -36,7 +41,7 @@
 	if(missed) // Most likely we have a slow attack and they dodged it or we somehow got moved.
 		add_attack_logs(src, A, "Animal-attacked (dodged)", admin_notify = FALSE)
 		playsound(src, 'sound/weapons/punchmiss.ogg', 75, 1)
-		visible_message(span("warning", "\The [src] misses their attack."))
+		visible_message(span_warning("\The [src] misses their attack."))
 		return FALSE
 
 	var/damage_to_do = rand(melee_damage_lower, melee_damage_upper)
@@ -86,7 +91,16 @@
 //The actual top-level ranged attack proc
 /mob/living/simple_mob/proc/shoot_target(atom/A)
 	set waitfor = FALSE
-	setClickCooldown(get_attack_speed())
+
+	if(!istype(A) || QDELETED(A))
+		return
+
+	// VOREStation Edit Start: Simplemob Injury
+	if(injury_enrages)
+		setClickCooldown(get_attack_speed() - ((injury_level / 2) SECONDS)) // Increase how fast we can attack by our injury level / 2
+	else
+		setClickCooldown(get_attack_speed() + ((injury_level / 2) SECONDS)) // Delay how fast we can attack by our injury level / 2
+	// VOREStation Edit Stop: Simplemob Injury
 
 	face_atom(A)
 
@@ -99,7 +113,16 @@
 			try_reload()
 			return FALSE
 
-	visible_message("<span class='danger'><b>\The [src]</b> fires at \the [A]!</span>")
+	if(ranged_cooldown_time) //If you have a non-zero number in a mob's variables, this pattern begins.
+		if(ranged_cooldown <= world.time) //Further down, a timer keeps adding to the ranged_cooldown variable automatically.
+			visible_message(span_danger(span_bold("\The [src]") + " fires at \the [A]!")) //Leave notice of shooting.
+			shoot(A) //Perform the shoot action
+			if(casingtype) //If the mob is designated to leave casings...
+				new casingtype(loc) //... leave the casing.
+			ranged_cooldown = world.time + ranged_cooldown_time + ((injury_level / 2) SECONDS) //Special addition here. This is a timer. Keeping updating the time after shooting. Add that ranged cooldown time specified in the mob to the world time.
+		return TRUE
+
+	visible_message(span_danger(span_bold("\The [src]") + " fires at \the [A]!"))
 	shoot(A)
 	if(casingtype)
 		new casingtype(loc)
@@ -108,7 +131,6 @@
 		ranged_post_animation(A)
 
 	return TRUE
-
 
 // Shoot a bullet at something.
 /mob/living/simple_mob/proc/shoot(atom/A)
@@ -141,7 +163,7 @@
 	set waitfor = FALSE
 	set_AI_busy(TRUE)
 
-	if(do_after(src, reload_time))
+	if(do_after(src, reload_time, target = src))
 		if(reload_sound)
 			playsound(src, reload_sound, 70, 1)
 		reload_count = 0
@@ -239,7 +261,6 @@
 	sleep(true_attack_delay)
 
 	set_AI_busy(FALSE)
-
 
 // Override these four for special custom animations (like the GOLEM).
 /mob/living/simple_mob/proc/melee_pre_animation(atom/A)

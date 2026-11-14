@@ -1,7 +1,7 @@
 ///If the machine is used/deleted in the crafting process
-#define CRAFTING_MACHINERY_CONSUME 1
+//# define CRAFTING_MACHINERY_CONSUME 1 Unused
 ///If the machine is only "used" i.e. it checks to see if it's nearby and allows crafting, but doesn't delete it
-#define CRAFTING_MACHINERY_USE 0
+//# define CRAFTING_MACHINERY_USE 0  Unused
 
 /datum/crafting_recipe
 	var/name = "" //in-game display name
@@ -47,3 +47,41 @@
 
 /datum/crafting_recipe/proc/on_craft_completion(mob/user, atom/result)
 	return
+
+// Computes the total reagents volume
+/datum/crafting_recipe/proc/get_parts_reagents_volume()
+	. = 0
+	for(var/list/L in parts)
+		for(var/path in L)
+			if(ispath(path, /datum/reagent))
+				. += L[path]
+
+// Locate one of the things that set the material type, and update it from the default (glass)
+/datum/crafting_recipe/spear/on_craft_completion(mob/user, atom/result)
+	var/obj/item/material/M
+	for(var/path in parts)
+		var/obj/item/material/N = locate(path) in result
+		if(istype(N, path))
+			if(!istype(M))
+				M = N
+			else
+				N.forceMove(get_turf(result))
+	if(!istype(M))
+		return
+
+	var/obj/item/material/twohanded/spear/S = result
+	S.set_material(M.material.name)
+	if(!(S.material.flags & MATERIAL_BRITTLE))
+		S.fragile = FALSE
+	qdel(M)
+
+/datum/crafting_recipe/surgerytable
+	name = "surgery table"
+	result = /obj/machinery/optable
+	reqs = list(
+		list(/obj/item/stack/material/silver = 12),
+		list(/obj/item/stack/rods = 10),
+		list(/obj/item/stack/material/leather = 1)
+	)
+	time = 240
+	category = CAT_MISC

@@ -58,9 +58,24 @@
 						/obj/item/toy/plushie/tuxedo_cat,
 						/obj/item/toy/plushie/borgplushie/medihound,
 						/obj/item/toy/plushie/borgplushie/scrubpuppy,
-						/obj/item/toy/plushie/borgplushie/drakiesec,
-						/obj/item/toy/plushie/borgplushie/drakiemed,
-						/obj/item/toy/plushie/otter
+						/obj/item/toy/plushie/borgplushie/drake/sec,
+						/obj/item/toy/plushie/borgplushie/drake/med,
+						/obj/item/toy/plushie/borgplushie/drake/sci,
+						/obj/item/toy/plushie/borgplushie/drake/eng,
+						/obj/item/toy/plushie/borgplushie/drake/mine,
+						/obj/item/toy/plushie/borgplushie/drake/jani,
+						/obj/item/toy/plushie/borgplushie/drake/trauma,
+						/obj/item/toy/plushie/otter,
+						/obj/item/toy/plushie/shark,
+						/obj/item/toy/plushie/tinytin,
+						/obj/item/toy/plushie/tinytin_sec,
+						/obj/item/toy/plushie/dragon,
+						/obj/item/toy/plushie/dragon/green,
+						/obj/item/toy/plushie/dragon/purple,
+						/obj/item/toy/plushie/dragon/red_east,
+						/obj/item/toy/plushie/dragon/green_east,
+						/obj/item/toy/plushie/dragon/white_east,
+						/obj/item/toy/plushie/dragon/gold_east
 						)
 
 /obj/machinery/clawmachine/update_icon()
@@ -90,32 +105,32 @@
 			ispowered = 0
 			update_icon()
 
-/obj/machinery/clawmachine/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/machinery/clawmachine/attackby(obj/item/W as obj, mob/user as mob)
 	if(busy)
-		to_chat(user,"<span class='notice'>The claw machine is currently running.</span> ")
+		to_chat(user,span_notice("The claw machine is currently running."))
 		return
-	if(W.is_wrench())
+	if(W.has_tool_quality(TOOL_WRENCH))
 		playsound(src, W.usesound, 100, 1)
 		if(anchored)
 			user.visible_message("[user] begins unsecuring \the [src] from the floor.", "You start unsecuring \the [src] from the floor.")
 		else
 			user.visible_message("[user] begins securing \the [src] to the floor.", "You start securing \the [src] to the floor.")
 
-		if(do_after(user, 20 * W.toolspeed))
+		if(do_after(user, 2 SECONDS * W.toolspeed, target = src))
 			if(!src) return
-			to_chat(user, "<span class='notice'>You [anchored? "un" : ""]secured \the [src]!</span>")
+			to_chat(user, span_notice("You [anchored? "un" : ""]secured \the [src]!"))
 			anchored = !anchored
 		return
 
 	if(!anchored)
-		to_chat(user,"<span class='notice'> The machine isn't secured.</span>")
+		to_chat(user,span_notice("The machine isn't secured."))
 		return
 
 	var/handled = 0
 	var/paid = 0
 
-	if(istype(W, /obj/item/weapon/spacecash))
-		var/obj/item/weapon/spacecash/C = W
+	if(istype(W, /obj/item/spacecash))
+		var/obj/item/spacecash/C = W
 		paid = insert_cash(C, user)
 		handled = 1
 		if(paid)
@@ -135,24 +150,24 @@
 		var/prizeselect = pickweight(prizes)
 		new prizeselect(src.loc)
 
-/obj/machinery/clawmachine/proc/insert_cash(var/obj/item/weapon/spacecash/cashmoney, mob/user)
+/obj/machinery/clawmachine/proc/insert_cash(obj/item/spacecash/cashmoney, mob/user)
 	if (ispowered == 0)
 		return
 	if (isbroken)
 		return
 	if(busy)
-		to_chat(user,"<span class='notice'>The claw machine is currently running.</span> ")
+		to_chat(user,span_notice("The claw machine is currently running."))
 		return
 	if(cashmoney.worth < 5)
-		to_chat(user,"<span class='notice'>You dont have enough Thalers to play!</span> ")
+		to_chat(user,span_notice("You dont have enough Thalers to play!"))
 		return
 
-	to_chat(user,"<span class='notice'>You put 5 Thalers in the claw machine and press start.</span>")
+	to_chat(user,span_notice("You put 5 Thalers in the claw machine and press start."))
 	cashmoney.worth -= 5
 	cashmoney.update_icon()
 
 	if(cashmoney.worth <= 0)
-		usr.drop_from_inventory(cashmoney)
+		user.drop_from_inventory(cashmoney)
 		qdel(cashmoney)
 		cashmoney.update_icon()
 
@@ -180,14 +195,14 @@
 	var/delaytime = 7 SECONDS
 
 	spawn(delaytime)
-		to_chat(user,"<span class='notice'>The clam machine lights up and starts to play!</span>")
+		to_chat(user,span_notice("The clam machine lights up and starts to play!"))
 
 		if (symbol1 == "one" && symbol2 == "one" && symbol3 == "one")
-			output = "<span class='notice'>Hooray! You Win!</span>"
+			output = span_notice("Hooray! You Win!")
 			winnings = TRUE
 
 		if (symbol1 == "two" && symbol2 == "two" && symbol3 == "two")
-			output = "<span class='notice'>Hooray! You Win!!</span>"
+			output = span_notice("Hooray! You Win!!")
 			winnings = TRUE
 
 		icon_state = initial(icon_state) // Set it back to the original iconstate.

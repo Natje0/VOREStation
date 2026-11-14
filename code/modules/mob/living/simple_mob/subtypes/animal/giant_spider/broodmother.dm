@@ -21,6 +21,8 @@
 	old_x = -16
 	old_y = 0
 
+	meat_amount = 20
+
 	projectiletype = /obj/item/projectile/energy/spidertoxin
 	projectilesound = 'sound/weapons/pierce.ogg'
 
@@ -57,8 +59,9 @@
 	special_attack_cooldown = 6 SECONDS
 	ai_holder_type = /datum/ai_holder/simple_mob/intentional/giant_spider_broodmother
 	poison_per_bite = 2
-	poison_type = "cyanide"
+	poison_type = REAGENT_ID_CYANIDE
 
+	loot_list = list(/obj/item/royal_spider_egg = 100)
 
 /obj/item/projectile/energy/spidertoxin
 	name = "concentrated spidertoxin"
@@ -71,11 +74,7 @@
 
 	combustion = FALSE
 
-/mob/living/simple_mob/animal/giant_spider/broodmother/death()
-	..()
-
-	new /obj/item/royal_spider_egg(src.loc)
-
+/mob/living/simple_mob/animal/giant_spider/broodmother/death(gibbed, deathmessage="falls over and makes its last twitches as its birthing sack bursts!")
 	var/count = 0
 	while(count < death_brood)
 		var/broodling_type = pick(possible_death_brood_types)
@@ -84,7 +83,7 @@
 		step_away(broodling, src)
 		count++
 
-	visible_message(span("critical", "\The [src]'s birthing sack bursts!"))
+	return ..()
 
 /mob/living/simple_mob/animal/giant_spider/broodmother/proc/spawn_brood(atom/A)
 	set waitfor = FALSE
@@ -97,7 +96,7 @@
 		step_away(broodling, src)
 		count++
 
-	visible_message(span("danger", "\The [src] releases brood from its birthing sack!"))
+	visible_message(span_danger("\The [src] releases brood from its birthing sack!"))
 
 /mob/living/simple_mob/animal/giant_spider/broodmother/proc/launch_brood(atom/A)
 	set waitfor = FALSE
@@ -111,7 +110,7 @@
 		broodling.throw_at(A, 10)
 		count++
 
-	visible_message(span("danger", "\The [src] launches brood from the distance!"))
+	visible_message(span_danger("\The [src] launches brood from the distance!"))
 
 /mob/living/simple_mob/animal/giant_spider/broodmother/proc/can_spawn_brood()
 	var/brood_amount = 0
@@ -168,12 +167,14 @@
 /obj/item/royal_spider_egg
 	name = "royal spider egg"
 	desc = "This one is yet to be imprinted!"
-	icon = 'icons/obj/egg_new_vr.dmi'	//VOREStation Edit
+	icon = 'icons/obj/egg.dmi'
 	icon_state = "egg_slimeglob"
 
-	origin_tech = list(TECH_BIO = 10)
 
-/obj/item/royal_spider_egg/attack_self(mob/user as mob)
+/obj/item/royal_spider_egg/attack_self(mob/user)
+	. = ..(user)
+	if(.)
+		return TRUE
 	var/response = tgui_alert(user, "Are you sure you want to release the royal spiderling right now? It appears ready to imprint the moment its born.", "Royal Spider Egg", list("Yes", "No"))
 
 	if(response == "Yes")

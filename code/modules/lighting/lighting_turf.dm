@@ -6,6 +6,7 @@
 
 	var/tmp/lighting_corners_initialised = FALSE
 
+	var/tmp/outdoors_adjacent = FALSE
 	///Our lighting object.
 	var/tmp/datum/lighting_object/lighting_object
 	///Lighting Corner datums.
@@ -95,11 +96,16 @@
 
 ///Setter for the byond luminosity var
 /turf/proc/set_luminosity(new_luminosity, force)
-	// SSplanets handles outdoor turfs
-	if(is_outdoors() && !force)
+	if(((is_outdoors() && !force) || outdoors_adjacent) && (z in GLOB.fake_sunlight_zs)) //Special exception for fakesun lit tiles
 		return
-	
+
 	luminosity = new_luminosity
+
+///Checks planets and fake_suns to see if our turf should be handled by either
+/turf/proc/check_for_sun()
+	if((SSplanets && SSplanets.z_to_planet.len >= z && SSplanets.z_to_planet[z]) || (z in GLOB.fake_sunlight_zs))
+		return TRUE
+	return FALSE
 
 ///Calculate on which directions this turfs block view.
 /turf/proc/recalculate_directional_opacity()
@@ -111,7 +117,7 @@
 		return
 	directional_opacity = NONE
 	for(var/atom/movable/opacity_source as anything in opacity_sources)
-		if(opacity_source.flags & ON_BORDER)
+		if(opacity_source && opacity_source.flags & ON_BORDER)
 			directional_opacity |= opacity_source.dir
 		else //If fulltile and opaque, then the whole tile blocks view, no need to continue checking.
 			directional_opacity = ALL_CARDINALS
@@ -121,7 +127,7 @@
 
 
 /turf/proc/change_area(area/old_area, area/new_area)
-	if(SSlighting.subsystem_initialized)
+	if(SSlighting.initialized)
 		if (new_area.dynamic_lighting != old_area.dynamic_lighting)
 			if (new_area.dynamic_lighting)
 				lighting_build_overlay()
@@ -131,19 +137,3 @@
 /turf/proc/has_dynamic_lighting()
 	var/area/A = loc
 	return (IS_DYNAMIC_LIGHTING(src) && IS_DYNAMIC_LIGHTING(A))
-
-/turf/proc/generate_missing_corners()
-
-	if (!lighting_corner_NE)
-		lighting_corner_NE = new/datum/lighting_corner(src, NORTH|EAST)
-
-	if (!lighting_corner_SE)
-		lighting_corner_SE = new/datum/lighting_corner(src, SOUTH|EAST)
-
-	if (!lighting_corner_SW)
-		lighting_corner_SW = new/datum/lighting_corner(src, SOUTH|WEST)
-
-	if (!lighting_corner_NW)
-		lighting_corner_NW = new/datum/lighting_corner(src, NORTH|WEST)
-
-	lighting_corners_initialised = TRUE

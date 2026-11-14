@@ -120,8 +120,6 @@
 /area/ship/aro/bridge)
 "as" = (
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -131,16 +129,12 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
 /area/ship/aro/bridge)
 "au" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -175,8 +169,6 @@
 "ay" = (
 /obj/effect/floor_decal/techfloor/corner,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -211,8 +203,6 @@
 "aD" = (
 /obj/machinery/door/airlock/alien/blue,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -256,8 +246,6 @@
 /area/ship/aro/recreation)
 "aH" = (
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
@@ -268,13 +256,9 @@
 /area/ship/aro/recreation)
 "aI" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -284,8 +268,6 @@
 /area/ship/aro/recreation)
 "aJ" = (
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -295,8 +277,6 @@
 /area/ship/aro/recreation)
 "aK" = (
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/alarm/alarms_hidden{
@@ -313,8 +293,6 @@
 	pixel_x = 28
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/simulated/floor/wood,
@@ -354,8 +332,6 @@
 "aR" = (
 /obj/structure/closet/crate/bin,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/wood,
@@ -377,8 +353,6 @@
 /area/ship/aro/holodeck)
 "aU" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/wood,
@@ -399,8 +373,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/wood,
@@ -426,8 +398,6 @@
 	pixel_x = 32
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/wood,
@@ -486,8 +456,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/simulated/floor/tiled/white,
@@ -497,8 +465,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/floor/tiled/white,
@@ -508,8 +474,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/simulated/floor/tiled/white,
@@ -563,8 +527,6 @@
 /area/ship/aro/recreation)
 "bo" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/white,
@@ -586,8 +548,8 @@
 /area/ship/aro/recreation)
 "bs" = (
 /obj/structure/table/standard,
-/obj/item/weapon/material/knife/butch,
-/obj/item/weapon/material/kitchen/rollingpin,
+/obj/item/material/knife/butch,
+/obj/item/material/kitchen/rollingpin,
 /obj/effect/floor_decal/borderfloorwhite{
 	dir = 6
 	},
@@ -608,8 +570,6 @@
 "bw" = (
 /obj/machinery/door/airlock/alien/blue,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -624,7 +584,7 @@
 /area/ship/aro/centralarea)
 "bz" = (
 /obj/structure/table/standard,
-/obj/item/weapon/storage/firstaid/surgery,
+/obj/item/storage/firstaid/surgery,
 /obj/machinery/alarm/alarms_hidden{
 	pixel_y = 25
 	},
@@ -643,8 +603,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -668,7 +626,7 @@
 /area/ship/aro/centralarea)
 "bF" = (
 /obj/structure/table/standard,
-/obj/item/weapon/tank/anesthetic,
+/obj/item/tank/anesthetic,
 /obj/item/clothing/mask/breath/medical,
 /obj/machinery/light{
 	dir = 8
@@ -694,8 +652,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -748,7 +704,7 @@
 /turf/simulated/floor/tiled/white,
 /area/ship/aro/centralarea)
 "bQ" = (
-/obj/item/device/healthanalyzer/advanced,
+/obj/item/healthanalyzer/advanced,
 /obj/effect/floor_decal/borderfloorwhite{
 	dir = 1
 	},
@@ -783,11 +739,11 @@
 /turf/simulated/floor/tiled/techmaint,
 /area/ship/aro/centralarea)
 "bT" = (
-/obj/item/weapon/stool/padded,
+/obj/item/stool/padded,
 /turf/simulated/floor/tiled/techmaint,
 /area/ship/aro/centralarea)
 "bU" = (
-/obj/item/weapon/storage/toolbox/syndicate,
+/obj/item/storage/toolbox/syndicate,
 /obj/structure/table/alien/blue,
 /turf/simulated/floor/tiled/techmaint,
 /area/ship/aro/centralarea)
@@ -900,8 +856,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -986,7 +940,7 @@
 /turf/simulated/floor/tiled/white,
 /area/ship/aro/centralarea)
 "cr" = (
-/obj/machinery/mecha_part_fabricator/pros{
+/obj/machinery/mecha_part_fabricator_tg/prosthetics{
 	req_access = list()
 	},
 /turf/simulated/floor/tiled/techmaint,
@@ -1000,7 +954,7 @@
 /turf/simulated/floor/tiled/techmaint,
 /area/ship/aro/centralarea)
 "ct" = (
-/obj/machinery/mecha_part_fabricator{
+/obj/machinery/mecha_part_fabricator_tg{
 	req_access = list()
 	},
 /obj/machinery/light{
@@ -1052,11 +1006,11 @@
 /turf/simulated/floor/tiled/white,
 /area/ship/aro/centralarea)
 "cB" = (
-/obj/item/weapon/storage/firstaid/regular{
+/obj/item/storage/firstaid/regular{
 	pixel_x = -2;
 	pixel_y = 4
 	},
-/obj/item/weapon/storage/firstaid/regular{
+/obj/item/storage/firstaid/regular{
 	pixel_x = -2;
 	pixel_y = 4
 	},
@@ -1066,34 +1020,34 @@
 /obj/item/bodybag/cryobag{
 	pixel_x = 5
 	},
-/obj/item/weapon/storage/firstaid/o2{
+/obj/item/storage/firstaid/o2{
 	layer = 2.8;
 	pixel_x = 4;
 	pixel_y = 6
 	},
-/obj/item/weapon/storage/box/masks,
-/obj/item/weapon/storage/box/gloves{
+/obj/item/storage/box/masks,
+/obj/item/storage/box/gloves{
 	pixel_x = 3;
 	pixel_y = 4
 	},
-/obj/item/weapon/storage/firstaid/toxin,
-/obj/item/weapon/storage/firstaid/fire{
+/obj/item/storage/firstaid/toxin,
+/obj/item/storage/firstaid/fire{
 	layer = 2.9;
 	pixel_x = 2;
 	pixel_y = 3
 	},
-/obj/item/weapon/storage/firstaid/adv{
+/obj/item/storage/firstaid/adv{
 	pixel_x = -2
 	},
-/obj/item/weapon/reagent_containers/blood/empty,
-/obj/item/weapon/reagent_containers/blood/OMinus,
-/obj/item/weapon/reagent_containers/blood/OMinus,
-/obj/item/weapon/reagent_containers/blood/OMinus,
-/obj/item/weapon/reagent_containers/blood/OMinus,
+/obj/item/reagent_containers/blood/empty,
+/obj/item/reagent_containers/blood/OMinus,
+/obj/item/reagent_containers/blood/OMinus,
+/obj/item/reagent_containers/blood/OMinus,
+/obj/item/reagent_containers/blood/OMinus,
 /obj/structure/closet/medical_wall{
 	pixel_y = -32
 	},
-/obj/item/weapon/storage/box/body_record_disk,
+/obj/item/storage/box/body_record_disk,
 /obj/effect/floor_decal/borderfloorwhite,
 /obj/effect/floor_decal/borderfloorwhite/corner2{
 	dir = 9
@@ -1119,7 +1073,6 @@
 /area/ship/aro/centralarea)
 "cE" = (
 /obj/machinery/chemical_dispenser/ert,
-/obj/structure/table/steel_reinforced,
 /obj/effect/floor_decal/borderfloorwhite{
 	dir = 6
 	},
@@ -1174,8 +1127,6 @@
 	},
 /obj/effect/floor_decal/techfloor,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -1192,8 +1143,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/manifold/hidden/supply,
@@ -1206,13 +1155,9 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -1229,8 +1174,6 @@
 	},
 /obj/effect/floor_decal/techfloor,
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -1252,8 +1195,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -1322,8 +1263,6 @@
 	dir = 8
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
@@ -1404,8 +1343,6 @@
 	dir = 8
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
@@ -1468,8 +1405,6 @@
 	dir = 8
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -1527,8 +1462,6 @@
 /obj/machinery/atmospherics/pipe/manifold4w/hidden/supply,
 /obj/machinery/atmospherics/pipe/manifold4w/hidden/scrubbers,
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1547,8 +1480,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1567,8 +1498,6 @@
 	dir = 10
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -1579,13 +1508,9 @@
 	},
 /obj/effect/floor_decal/techfloor/corner,
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -1598,8 +1523,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1612,8 +1535,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1629,8 +1550,8 @@
 /area/ship/aro/centralarea)
 "dD" = (
 /obj/structure/table/rack,
-/obj/item/device/suit_cooling_unit,
-/obj/item/weapon/tank/air,
+/obj/item/suit_cooling_unit,
+/obj/item/tank/air,
 /turf/simulated/floor/tiled/techfloor,
 /area/ship/aro/centralarea)
 "dE" = (
@@ -1666,8 +1587,6 @@
 	dir = 9
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1676,10 +1595,10 @@
 /obj/structure/closet{
 	name = "custodial"
 	},
-/obj/item/weapon/reagent_containers/spray/cleaner,
-/obj/item/weapon/reagent_containers/glass/bucket,
-/obj/item/weapon/mop,
-/obj/item/weapon/storage/box/lights/mixed,
+/obj/item/reagent_containers/spray/cleaner,
+/obj/item/reagent_containers/glass/bucket,
+/obj/item/mop,
+/obj/item/storage/box/lights/mixed,
 /obj/machinery/light/small{
 	dir = 8
 	},
@@ -1753,8 +1672,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -1799,8 +1716,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 8;
 	icon_state = "1-8"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1854,8 +1769,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -1927,8 +1840,6 @@
 "em" = (
 /obj/machinery/door/airlock/alien/blue,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -1979,8 +1890,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -2021,8 +1930,6 @@
 "ex" = (
 /obj/structure/catwalk,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -2036,8 +1943,6 @@
 "ey" = (
 /obj/structure/catwalk,
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -2051,8 +1956,6 @@
 "ez" = (
 /obj/machinery/door/airlock/alien/blue,
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -2071,8 +1974,6 @@
 	dir = 8
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /obj/machinery/atmospherics/pipe/manifold4w/hidden/scrubbers,
@@ -2085,13 +1986,9 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 8;
 	icon_state = "2-8"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -2156,8 +2053,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -2261,7 +2156,7 @@
 /turf/simulated/floor/wood,
 /area/ship/aro/midshipshangars)
 "eX" = (
-/obj/item/device/flashlight/lamp,
+/obj/item/flashlight/lamp,
 /obj/structure/table/alien/blue,
 /obj/machinery/atmospherics/unary/vent_pump/on,
 /obj/machinery/alarm/alarms_hidden{
@@ -2319,7 +2214,7 @@
 /turf/simulated/shuttle/floor/alienplating/blue,
 /area/ship/aro/midshipshangars)
 "ff" = (
-/obj/item/weapon/bedsheet/captaindouble,
+/obj/item/bedsheet/captaindouble,
 /obj/structure/bed/double,
 /turf/simulated/floor/wood,
 /area/ship/aro/midshipshangars)
@@ -2358,8 +2253,6 @@
 	dir = 4
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/supply{
@@ -2489,7 +2382,7 @@
 /area/ship/aro/midshipshangars)
 "fx" = (
 /obj/machinery/embedded_controller/radio/simple_docking_controller{
-	frequency = 1380;
+	frequency = 1381;
 	id_tag = "aroship_boatbay";
 	pixel_y = 28;
 	tag_door = null
@@ -2514,7 +2407,7 @@
 /turf/simulated/floor/wood,
 /area/ship/aro/midshipshangars)
 "fA" = (
-/obj/item/device/flashlight/lamp,
+/obj/item/flashlight/lamp,
 /obj/structure/table/alien/blue,
 /obj/machinery/atmospherics/unary/vent_pump/on{
 	dir = 1
@@ -2534,8 +2427,6 @@
 /area/ship/aro/midshipshangars)
 "fC" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/effect/floor_decal/techfloor{
@@ -2558,8 +2449,6 @@
 "fG" = (
 /obj/machinery/door/airlock/alien/blue,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -2603,8 +2492,6 @@
 /area/ship/aro/engineering)
 "fM" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/effect/floor_decal/techfloor/corner{
@@ -2705,8 +2592,6 @@
 /area/ship/aro/engineering)
 "fY" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor/grid,
@@ -2733,7 +2618,7 @@
 "gc" = (
 /obj/machinery/embedded_controller/radio/simple_docking_controller{
 	dir = 8;
-	frequency = 1380;
+	frequency = 1381;
 	id_tag = "aroboat_docker";
 	pixel_x = 28
 	},
@@ -2794,8 +2679,6 @@
 /area/ship/aro/engineering)
 "gm" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/effect/floor_decal/techfloor,
@@ -2815,7 +2698,7 @@
 /area/ship/aro/engineering)
 "gp" = (
 /obj/machinery/door/airlock/alien/blue{
-	frequency = 1380;
+	frequency = 1381;
 	id_tag = "aroboat_doors"
 	},
 /obj/structure/fans/hardlight,
@@ -2849,9 +2732,7 @@
 /turf/simulated/floor/tiled/monotile,
 /area/ship/aro/midshipshangars)
 "gt" = (
-/obj/machinery/mech_recharger{
-	icon = 'icons/turf/shuttle_alien_blue.dmi'
-	},
+/obj/machinery/mech_recharger/alien,
 /obj/mecha/combat/fighter/pinnace,
 /turf/simulated/floor/tiled/techfloor,
 /area/ship/aro/midshipshangars)
@@ -2877,13 +2758,9 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
@@ -2893,8 +2770,6 @@
 	dir = 1
 	},
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
@@ -2940,29 +2815,21 @@
 /area/ship/aro/engineering)
 "gE" = (
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 4;
 	icon_state = "1-4"
 	},
 /obj/structure/cable/cyan{
-	d1 = 2;
-	d2 = 4;
 	icon_state = "2-4"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
 /area/ship/aro/engineering)
 "gF" = (
 /obj/structure/cable/cyan{
-	d1 = 4;
-	d2 = 8;
 	icon_state = "4-8"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
 /area/ship/aro/engineering)
 "gG" = (
-/obj/machinery/power/smes/buildable/hybrid{
-	output_level = 250000
-	},
+/obj/machinery/power/smes/buildable/hybrid/max_charge,
 /obj/structure/cable/cyan{
 	icon_state = "0-8"
 	},
@@ -2973,7 +2840,7 @@
 	dir = 8
 	},
 /obj/structure/cable/pink{
-	dir = 1
+	icon_state = "0-2"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
 /area/ship/aro/engineering)
@@ -3029,7 +2896,6 @@
 /area/ship/aro/engineering)
 "gQ" = (
 /obj/structure/cable/pink{
-	dir = 1;
 	icon_state = "1-2"
 	},
 /turf/simulated/shuttle/floor/alienplating/blue,
@@ -3052,7 +2918,6 @@
 /area/ship/aro/engines)
 "gU" = (
 /obj/structure/cable/pink{
-	dir = 1;
 	icon_state = "2-5"
 	},
 /turf/simulated/shuttle/wall/alien/blue,
@@ -3131,8 +2996,6 @@
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,
@@ -3146,8 +3009,8 @@
 /area/ship/aro/centralarea)
 "si" = (
 /obj/structure/table/rack/shelf/steel,
-/obj/item/weapon/rig/robotics,
-/obj/item/weapon/cell/high,
+/obj/item/rig/robotics,
+/obj/item/cell/high,
 /turf/simulated/floor/tiled/techfloor,
 /area/ship/aro/centralarea)
 "sl" = (
@@ -3179,9 +3042,7 @@
 /area/ship/aro/centralarea)
 "wC" = (
 /obj/effect/floor_decal/industrial/outline,
-/obj/machinery/mech_recharger{
-	icon = 'icons/turf/shuttle_alien_blue.dmi'
-	},
+/obj/machinery/mech_recharger/alien,
 /obj/mecha/combat/fighter/pinnace,
 /turf/simulated/floor/tiled/techfloor,
 /area/ship/aro/midshipshangars)
@@ -3209,8 +3070,8 @@
 /area/ship/aro/midshipshangars)
 "CT" = (
 /obj/structure/table/rack/shelf/steel,
-/obj/item/weapon/technomancer_core/universal,
-/obj/item/weapon/technomancer_catalog/universal,
+/obj/item/technomancer_core/universal,
+/obj/item/technomancer_catalog/universal,
 /turf/simulated/floor/tiled/techfloor,
 /area/ship/aro/centralarea)
 "GH" = (
@@ -3233,8 +3094,6 @@
 	dir = 8
 	},
 /obj/structure/cable/cyan{
-	d1 = 1;
-	d2 = 2;
 	icon_state = "1-2"
 	},
 /turf/simulated/floor/tiled/techfloor,

@@ -1,5 +1,5 @@
 //Hijacking this file for BS12 playernotes functions. I like this ^ one systemm alright, but converting sounds too bothersome~ Chinsky.
-/proc/notes_add(var/key, var/note, var/mob/user)
+/proc/notes_add(key, note, mob/user)
 	if (!key || !note)
 		return
 
@@ -27,7 +27,7 @@
 	var/datum/player_info/P = new
 	if (user)
 		P.author = user.key
-		P.rank = user.client.holder.rank
+		P.rank = user.client.holder.rank_names()
 	else
 		P.author = "Adminbot"
 		P.rank = "Friendly Robot"
@@ -37,7 +37,7 @@
 	infos += P
 	info << infos
 
-	message_admins("<font color='blue'>[key_name_admin(user)] has edited [key]'s notes.</font>")
+	message_admins(span_blue("[key_name_admin(user)] has edited [key]'s notes."))
 	log_admin("[key_name(user)] has edited [key]'s notes.")
 	admin_action_message(P.author, key, "added note on", note, 0) //VOREStation Add
 	del(info) // savefile, so NOT qdel
@@ -52,7 +52,7 @@
 	del(note_list) // savefile, so NOT qdel
 
 
-/proc/notes_del(var/key, var/index)
+/proc/notes_del(key, index)
 	var/savefile/info = new("data/player_saves/[copytext(key, 1, 2)]/[key]/info.sav")
 	var/list/infos
 	info >> infos
@@ -62,12 +62,12 @@
 	infos.Remove(item)
 	info << infos
 
-	message_admins("<font color='blue'>[key_name_admin(usr)] deleted one of [key]'s notes.</font>")
+	message_admins(span_blue("[key_name_admin(usr)] deleted one of [key]'s notes."))
 	log_admin("[key_name(usr)] deleted one of [key]'s notes.")
 	admin_action_message(usr.key, key, "deleted note on", "\[Note gone\]", 0) //VOREStation Add
 	qdel(info)
 
-/proc/show_player_info_irc(var/key as text)
+/proc/show_player_info_irc(key as text)
 	var/dat = "          Info on [key]\n"
 	var/savefile/info = new("data/player_saves/[copytext(key, 1, 2)]/[key]/info.sav")
 	var/list/infos

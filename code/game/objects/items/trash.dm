@@ -8,17 +8,15 @@
 	desc = "This is rubbish."
 	drop_sound = 'sound/items/drop/wrapper.ogg'
 	pickup_sound = 'sound/items/pickup/wrapper.ogg'
+	matter = list(MAT_STEEL = MATERIAL_COST(0.015))
 	var/age = 0
 
-/obj/item/trash/New(var/newloc, var/_age)
-	..(newloc)
+/obj/item/trash/Initialize(mapload, _age)
+	. = ..()
 	if(!isnull(_age))
 		age = _age
-
-/obj/item/trash/Initialize(mapload)
-	if(!mapload || !config.persistence_ignore_mapload)
+	if(!mapload || !CONFIG_GET(flag/persistence_ignore_mapload))
 		SSpersistence.track_value(src, /datum/persistent/filth/trash)
-	. = ..()
 
 /obj/item/trash/Destroy()
 	SSpersistence.forget_value(src, /datum/persistent/filth/trash)
@@ -111,6 +109,12 @@
 /obj/item/trash/small_bowl
 	name = "small bowl"
 	icon_state	= "small_bowl"
+	drop_sound = 'sound/items/drop/food.ogg'
+	pickup_sound = 'sound/items/pickup/food.ogg'
+
+/obj/item/trash/turkeybones
+	name = "turkey bones"
+	icon_state	= "turkeybones"
 	drop_sound = 'sound/items/drop/food.ogg'
 	pickup_sound = 'sound/items/pickup/food.ogg'
 
@@ -232,8 +236,8 @@
 	pickup_sound = 'sound/items/pickup/flesh.ogg'
 	slot_flags = SLOT_EARS | SLOT_MASK
 
-/obj/item/trash/attack(mob/M as mob, mob/living/user as mob)
-	return
+/obj/item/trash/attack(mob/living/M, mob/living/user, target_zone, attack_modifier)
+	return NONE
 
 
 /obj/item/trash/beef
@@ -245,6 +249,12 @@
 /obj/item/trash/beans
 	name = "empty bean can"
 	icon_state = "beans"
+	drop_sound = 'sound/items/drop/soda.ogg'
+	pickup_sound = 'sound/items/pickup/soda.ogg'
+
+/obj/item/trash/tomato
+	name = "empty tomato soup can"
+	icon_state = "tomato"
 	drop_sound = 'sound/items/drop/soda.ogg'
 	pickup_sound = 'sound/items/pickup/soda.ogg'
 
@@ -343,7 +353,7 @@
 	drop_sound = 'sound/items/drop/soda.ogg'
 	pickup_sound = 'sound/items/pickup/soda.ogg'
 
-/obj/item/trash/spacercake_wrap
+/obj/item/trash/spacer_cake_wrap
 	name = "snack cake wrapper"
 	icon_state = "spacercake_wrap"
 
@@ -409,3 +419,76 @@
 	name = "burrito packaging"
 	icon_state = "smolburrito"
 
+/obj/item/trash/candybowl
+	name = "candy bowl"
+	icon_state = "candy_bowl"
+
+/obj/item/trash/brainzsnax
+	name = "\improper BrainzSnax can"
+	icon_state = "brainzsnax"
+	drop_sound = 'sound/items/drop/soda.ogg'
+	pickup_sound = 'sound/items/pickup/soda.ogg'
+
+/obj/item/trash/brainzsnaxred
+	name = "\improper BrainzSnax RED can"
+	icon_state = "brainzsnaxred"
+	drop_sound = 'sound/items/drop/soda.ogg'
+	pickup_sound = 'sound/items/pickup/soda.ogg'
+
+
+/obj/item/trash/pasty
+	name = "pasty packaging"
+	icon_state = "pasty"
+
+/obj/item/trash/sausageroll
+	name = "sausage roll packaging"
+	icon_state = "sausageroll"
+
+/obj/item/trash/scotchegg
+	name = "scotch egg packaging"
+	icon_state = "scotchegg"
+
+/obj/item/trash/porkpie
+	name = "pork pie packaging"
+	icon_state = "porkpie"
+
+//Candy Bars (1-10)
+/obj/item/trash/candy/cb01
+	name = "\improper Tau Ceti Bar wrapper"
+	icon_state = "cb01"
+
+/obj/item/trash/candy/cb02
+	name = "\improper Hundred-Thousand Thaler Bar wrapper"
+	icon_state = "cb02"
+
+/obj/item/trash/candy/cb03
+	name = "\improper Lars' Saltlakris wrapper"
+	icon_state = "cb03"
+
+/obj/item/trash/candy/cb04
+	name = "\improper Aerostat Bar wrapper"
+	icon_state = "cb04"
+
+/obj/item/trash/candy/cb05
+	name = "\improper Andromeda Bar wrapper"
+	icon_state = "cb05"
+
+/obj/item/trash/candy/cb06
+	name = "\improper Mocha Crunch wrapper"
+	icon_state = "cb06"
+
+/obj/item/trash/candy/cb07
+	name = "\improper TaroMilk Bar wrapper"
+	icon_state = "cb07"
+
+/obj/item/trash/candy/cb08
+	name = "\improper Cronk Bar wrapper"
+	icon_state = "cb08"
+
+/obj/item/trash/candy/cb09
+	name = "\improper Kaju Mamma! Bar wrapper"
+	icon_state = "cb09"
+
+/obj/item/trash/candy/cb10
+	name = "\improper Shantak Bar wrapper"
+	icon_state = "cb10"

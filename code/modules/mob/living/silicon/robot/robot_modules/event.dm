@@ -1,76 +1,79 @@
 /* Other, unaffiliated modules */
+/obj/item/robot_module/robot/malf
+	hide_on_manifest = TRUE
+	ui_theme = "malfunction"
+	idcard_type = /obj/item/card/id/lost
 
 // The module that borgs on the surface have.  Generally has a lot of useful tools in exchange for questionable loyalty to the crew.
-/obj/item/weapon/robot_module/robot/lost
+/obj/item/robot_module/robot/malf/lost
 	name = "lost robot module"
-	hide_on_manifest = TRUE
-	sprites = list(
-					"Drone" = "drone-lost"
-				)
 
-/obj/item/weapon/robot_module/robot/lost/New(var/mob/living/silicon/robot/R)
+/obj/item/robot_module/robot/malf/lost/create_equipment(mob/living/silicon/robot/robot)
 	..()
 	// Sec
-	src.modules += new /obj/item/weapon/melee/baton/shocker/robot(src)
-	src.modules += new /obj/item/weapon/handcuffs/cyborg(src)
+	src.modules += new /obj/item/melee/robotic/baton/shocker(src)
+	src.modules += new /obj/item/handcuffs/cyborg(src)
 	src.modules += new /obj/item/borg/combat/shield(src)
 
 	// Med
-	src.modules += new /obj/item/device/healthanalyzer(src)
-	src.modules += new /obj/item/weapon/reagent_containers/borghypo/lost(src)
+	src.modules += new /obj/item/healthanalyzer(src)
+	src.modules += new /obj/item/shockpaddles/robot(src)
+	src.modules += new /obj/item/reagent_containers/borghypo/lost(src)
 
 	// Engi
-	src.modules += new /obj/item/weapon/weldingtool/electric/mounted(src)
-	src.modules += new /obj/item/weapon/tool/screwdriver/cyborg(src)
-	src.modules += new /obj/item/weapon/tool/wrench/cyborg(src)
-	src.modules += new /obj/item/weapon/tool/wirecutters/cyborg(src)
-	src.modules += new /obj/item/device/multitool(src)
+	src.modules += new /obj/item/weldingtool/electric/mounted(src)
+	src.modules += new /obj/item/tool/screwdriver/cyborg(src)
+	src.modules += new /obj/item/tool/wrench/cyborg(src)
+	src.modules += new /obj/item/tool/wirecutters/cyborg(src)
+	src.modules += new /obj/item/multitool/cyborg(src)
 
 	// Sci
-	src.modules += new /obj/item/device/robotanalyzer(src)
+	src.modules += new /obj/item/robotanalyzer(src)
 
 	// Potato
-	src.emag = new /obj/item/weapon/gun/energy/retro/mounted(src)
+	src.emag += new /obj/item/gun/energy/robotic/laser/retro(src)
 
 	var/datum/matter_synth/wire = new /datum/matter_synth/wire()
 	synths += wire
 
-	var/obj/item/stack/cable_coil/cyborg/C = new /obj/item/stack/cable_coil/cyborg(src)
-	C.synths = list(wire)
-	src.modules += C
+	src.modules += new /obj/item/dogborg/sleeper/lost(src)
+	src.modules += new /obj/item/dogborg/pounce(src)
 
-/obj/item/weapon/robot_module/robot/gravekeeper
+/obj/item/robot_module/robot/malf/lost/adjust_gps(obj/item/gps/robot/robot_gps)
+	robot_gps.long_range = TRUE
+	robot_gps.hide_signal = TRUE
+	robot_gps.can_hide_signal = TRUE
+
+/obj/item/robot_module/robot/malf/lost/handle_special_unlocks(mob/living/silicon/robot/owner_robot)
+	if(!owner_robot.emag_items)
+		owner_robot.scramble_hardware(20)
+	if (owner_robot.churn_count == 5)
+		emag += new /obj/item/self_repair_system/advanced(src)
+		owner_robot.hud_used.update_robot_modules_display()
+
+/obj/item/robot_module/robot/malf/gravekeeper
 	name = "gravekeeper robot module"
-	hide_on_manifest = TRUE
-	sprites = list(
-					"Drone" = "drone-gravekeeper",
-					"Sleek" = "sleek-gravekeeper"
-				)
 
-/obj/item/weapon/robot_module/robot/gravekeeper/New(var/mob/living/silicon/robot/R)
+/obj/item/robot_module/robot/malf/gravekeeper/create_equipment(mob/living/silicon/robot/robot)
 	..()
 	// For fending off animals and looters
-	src.modules += new /obj/item/weapon/melee/baton/shocker/robot(src)
+	src.modules += new /obj/item/melee/robotic/baton/shocker(src)
 	src.modules += new /obj/item/borg/combat/shield(src)
 
 	// For repairing gravemarkers
-	src.modules += new /obj/item/weapon/weldingtool/electric/mounted(src)
-	src.modules += new /obj/item/weapon/tool/screwdriver/cyborg(src)
-	src.modules += new /obj/item/weapon/tool/wrench/cyborg(src)
+	src.modules += new /obj/item/weldingtool/electric/mounted(src)
+	src.modules += new /obj/item/tool/screwdriver/cyborg(src)
+	src.modules += new /obj/item/tool/wrench/cyborg(src)
 
 	// For growing flowers
-	src.modules += new /obj/item/weapon/material/minihoe(src)
-	src.modules += new /obj/item/weapon/material/knife/machete/hatchet(src)
-	src.modules += new /obj/item/device/analyzer/plant_analyzer(src)
-	src.modules += new /obj/item/weapon/storage/bag/plants(src)
-	src.modules += new /obj/item/weapon/robot_harvester(src)
+	src.modules += new /obj/item/robotic_multibelt/botanical(src)
 
 	// For digging and beautifying graves
-	src.modules += new /obj/item/weapon/shovel(src)
-	src.modules += new /obj/item/weapon/gripper/gravekeeper(src)
+	src.modules += new /obj/item/shovel(src)
+	src.modules += new /obj/item/gripper/gravekeeper(src)
 
 	// For really persistent looters
-	src.emag = new /obj/item/weapon/gun/energy/retro/mounted(src)
+	src.emag += new /obj/item/gun/energy/robotic/laser/retro(src)
 
 	var/datum/matter_synth/wood = new /datum/matter_synth/wood(25000)
 	synths += wood
@@ -78,3 +81,14 @@
 	var/obj/item/stack/material/cyborg/wood/W = new (src)
 	W.synths = list(wood)
 	src.modules += W
+
+	// For uwu
+	src.modules += new /obj/item/dogborg/sleeper/compactor/generic(src)
+	src.emag += new /obj/item/dogborg/pounce(src)
+
+/obj/item/robot_module/robot/malf/gravekeeper/handle_special_unlocks(mob/living/silicon/robot/owner_robot)
+	if(!owner_robot.emag_items)
+		owner_robot.scramble_hardware(10)
+	if (owner_robot.churn_count == 5)
+		emag += new /obj/item/self_repair_system/advanced(src)
+		owner_robot.hud_used.update_robot_modules_display()

@@ -48,87 +48,136 @@
 	var/datum/data/casino_prize/currently_vending = null // What we're requesting payment for right now
 	var/list/log = list() //Log only SS13 staff is allowed to look at, CKEYS are listed here for record keeping of prizes and players for events!
 
-	var/category_weapons	 = 1	//For listing categories, if false then prizes of this categories cant be obtained nor bought for post-shift enjoyment
-	var/category_gear		 = 1	//If 1 prizes will be only logged
-	var/category_clothing	 = 1	//If 2 prizes will both be logged and spawned
-	var/category_misc		 = 1
-	var/category_drinks		 = 1
+	var/category_weapons	 = 2	//For listing categories, if false then prizes of this categories cant be obtained nor bought for post-shift enjoyment
+	var/category_gear		 = 2	//If 1 prizes will be only logged
+	var/category_clothing	 = 2	//If 2 prizes will both be logged and spawned
+	var/category_misc		 = 2
+	var/category_drinks		 = 2
 	var/category_implants	 = 1
 	var/category_event		 = 1	//For special events, holidays, etc
+	var/category_pets		 = 2
 
-/obj/machinery/casino_prize_dispenser/Initialize()
+/obj/machinery/casino_prize_dispenser/Initialize(mapload)
 	. = ..()
 	power_change()
 
 	item_list = list()
 	item_list["Weapons"] = list(
-		CASINO_PRIZE("Scepter", /obj/item/weapon/scepter, 1, 500, "weapons"),
-		CASINO_PRIZE("Chain of Command", /obj/item/weapon/melee/chainofcommand, 1, 250, "weapons"),
-		CASINO_PRIZE("Size Gun", /obj/item/weapon/gun/energy/sizegun, 1, 100, "weapons"),
-		CASINO_PRIZE("Advanced Particle Rifle", /obj/item/weapon/gun/energy/particle/advanced, 1, 500, "weapons"),
-		CASINO_PRIZE("Temperature Gun", /obj/item/weapon/gun/energy/temperature, 1, 250, "weapons"),
-		CASINO_PRIZE("Alien Pistol", /obj/item/weapon/gun/energy/alien, 1, 1000, "weapons"),
-		CASINO_PRIZE("Floral Gun", /obj/item/weapon/gun/energy/floragun, 1, 250, "weapons"),
-		CASINO_PRIZE("Net Gun", /obj/item/weapon/gun/energy/netgun, 1, 500, "weapons"),
+		CASINO_PRIZE("Scepter", /obj/item/scepter, 1, 2500, "weapons"),
+		CASINO_PRIZE("Rapier", /obj/item/melee/rapier, 1, 3000, "weapons"),
+		CASINO_PRIZE("Chain of Command", /obj/item/melee/chainofcommand, 1, 1250, "weapons"),
+		CASINO_PRIZE("Golden Bat", /obj/item/material/twohanded/baseballbat/gold, 1, 1000, "weapons"),
+		CASINO_PRIZE("Size Gun", /obj/item/gun/energy/sizegun, 1, 1500, "weapons"),
+		CASINO_PRIZE("Gradual Size Gun", /obj/item/slow_sizegun, 1, 1500, "weapons"),
+		CASINO_PRIZE("Metamorphosis Ray", /obj/item/gun/energy/mouseray/metamorphosis, 1, 6000, "weapons"),
+		CASINO_PRIZE("Net Gun", /obj/item/gun/energy/netgun, 1, 3000, "weapons"),
 	)
 	item_list["Gear"] = list(
-		CASINO_PRIZE("Experimental Welder", /obj/item/weapon/weldingtool/experimental, 1, 500, "gear"),
-		CASINO_PRIZE("Chameleon Tie", /obj/item/clothing/accessory/chameleon, 1, 250, "gear"),
-		CASINO_PRIZE("Chemsprayer", /obj/item/weapon/reagent_containers/spray/chemsprayer, 1, 250, "gear"),
-		CASINO_PRIZE("Bluespace Beaker", /obj/item/weapon/reagent_containers/glass/beaker/bluespace, 1, 200, "gear"),
-		CASINO_PRIZE("Cryo Beaker", /obj/item/weapon/reagent_containers/glass/beaker/noreact, 1, 200, "gear"),
+		CASINO_PRIZE("Experimental Welder", /obj/item/weldingtool/experimental, 1, 500, "gear"),
+		CASINO_PRIZE("Chemsprayer", /obj/item/reagent_containers/spray/chemsprayer, 1, 1250, "gear"),
+		CASINO_PRIZE("Bluespace Beaker", /obj/item/reagent_containers/glass/beaker/bluespace, 1, 1000, "gear"),
+		CASINO_PRIZE("Cryo Beaker", /obj/item/reagent_containers/glass/beaker/noreact, 1, 1000, "gear"),
+		CASINO_PRIZE("Golden Pickaxe", /obj/item/pickaxe/gold, 1, 1000, "gear"),
 	)
 	item_list["Clothing"] = list(
-		CASINO_PRIZE("Shark mask", /obj/item/clothing/mask/shark, 1, 50, "clothing"),
-		CASINO_PRIZE("Pig mask", /obj/item/clothing/mask/pig, 1, 50, "clothing"),
-		CASINO_PRIZE("Luchador mask", /obj/item/clothing/mask/luchador, 1, 50, "clothing"),
-		CASINO_PRIZE("Horse mask", /obj/item/clothing/mask/horsehead, 1, 50, "clothing"),
-		CASINO_PRIZE("Goblin mask", /obj/item/clothing/mask/goblin, 1, 50, "clothing"),
-		CASINO_PRIZE("Fake moustache", /obj/item/clothing/mask/fakemoustache, 1, 50, "clothing"),
-		CASINO_PRIZE("Dolphin mask", /obj/item/clothing/mask/dolphin, 1, 50, "clothing"),
-		CASINO_PRIZE("Demon mask", /obj/item/clothing/mask/demon, 1, 50, "clothing"),
-		CASINO_PRIZE("Chameleon mask", /obj/item/clothing/under/chameleon, 1, 250, "clothing"),
-		CASINO_PRIZE("Ian costume", /obj/item/clothing/suit/storage/hooded/ian_costume, 1, 50, "clothing"),
-		CASINO_PRIZE("Carp costume", /obj/item/clothing/suit/storage/hooded/carp_costume, 1, 50, "clothing"),
+		CASINO_PRIZE("Shark mask", /obj/item/clothing/mask/shark, 1, 250, "clothing"),
+		CASINO_PRIZE("Pig mask", /obj/item/clothing/mask/pig, 1, 250, "clothing"),
+		CASINO_PRIZE("Luchador mask", /obj/item/clothing/mask/luchador, 1, 250, "clothing"),
+		CASINO_PRIZE("Horse mask", /obj/item/clothing/mask/horsehead, 1, 250, "clothing"),
+		CASINO_PRIZE("Goblin mask", /obj/item/clothing/mask/goblin, 1, 250, "clothing"),
+		CASINO_PRIZE("Fake moustache", /obj/item/clothing/mask/fakemoustache, 1, 250, "clothing"),
+		CASINO_PRIZE("Dolphin mask", /obj/item/clothing/mask/dolphin, 1, 250, "clothing"),
+		CASINO_PRIZE("Demon mask", /obj/item/clothing/mask/demon, 1, 250, "clothing"),
+		CASINO_PRIZE("Chameleon mask", /obj/item/clothing/under/chameleon, 1, 1000, "clothing"),
+		CASINO_PRIZE("Chameleon tie", /obj/item/clothing/accessory/chameleon, 1, 750, "clothing"),
+		CASINO_PRIZE("Ian costume", /obj/item/clothing/suit/storage/hooded/costume/ian, 1, 250, "clothing"),
+		CASINO_PRIZE("Carp costume", /obj/item/clothing/suit/storage/hooded/costume/carp, 1, 250, "clothing"),
+		CASINO_PRIZE("Plague doctor costume", /obj/item/storage/box/casino/costume_plaguedoctor, 1, 500, "clothing"),
+		CASINO_PRIZE("Wizard costume", /obj/item/storage/box/casino/costume_wizard, 1, 500, "clothing"),
+		CASINO_PRIZE("Pirate costume", /obj/item/storage/box/casino/costume_pirate, 1, 500, "clothing"),
+		CASINO_PRIZE("Commie costume", /obj/item/storage/box/casino/costume_commie, 1, 500, "clothing"),
+		CASINO_PRIZE("Marine costume", /obj/item/storage/box/casino/costume_marine, 1, 500, "clothing"),
+		CASINO_PRIZE("Cowboy costume", /obj/item/storage/box/casino/costume_cowboy, 1, 500, "clothing"),
+		CASINO_PRIZE("Golden Collar", /obj/item/clothing/accessory/collar/gold, 1, 250, "clothing"),
+		CASINO_PRIZE("Decorative Casino Sentient Prize Collar", /obj/item/clothing/accessory/collar/casinosentientprize_fake, 1, 100, "clothing"),
+		CASINO_PRIZE("Bluespace Collar", /obj/item/clothing/accessory/collar/shock/bluespace, 1, 1000, "clothing"),
+	)
+	item_list["Donk Soft"] = list(
+		CASINO_PRIZE("Donk-Soft shotgun", /obj/item/gun/projectile/shotgun/pump/toy, 1, 1000, "misc"),
+		CASINO_PRIZE("Donk-Soft mosin-nagant", /obj/item/gun/projectile/shotgun/pump/toy/moistnugget, 1, 1000, "misc"),
+		CASINO_PRIZE("Donk-Soft pistol", /obj/item/gun/projectile/pistol/toy, 1, 800, "misc"),
+		CASINO_PRIZE("Donk-Soft levergun", /obj/item/gun/projectile/shotgun/pump/toy/levergun, 1, 1000, "misc"),
+		CASINO_PRIZE("Donk-Soft commemorative pistol", /obj/item/gun/projectile/pistol/toy/n99, 1, 750, "misc"),
+		CASINO_PRIZE("Donk-Soft revolver", /obj/item/gun/projectile/revolver/toy, 1, 750, "misc"),
+		CASINO_PRIZE("Donk-Soft big-iron", /obj/item/gun/projectile/revolver/toy/big_iron, 1, 750, "misc"),
+		CASINO_PRIZE("Donk-Soft crossbow", /obj/item/gun/projectile/revolver/toy/crossbow, 1, 600, "misc"),
+		CASINO_PRIZE("Donk-Soft sawn off shotgun", /obj/item/gun/projectile/revolver/toy/sawnoff, 1, 800, "misc"),
+		CASINO_PRIZE("Donk-Soft SMG", /obj/item/gun/projectile/automatic/toy, 1, 1200, "misc"),
+		CASINO_PRIZE("Foam Darts", /obj/item/ammo_magazine/ammo_box/foam, 1, 100, "misc"),
+		CASINO_PRIZE("Riot Darts", /obj/item/ammo_magazine/ammo_box/foam/riot, 1, 200, "misc"),
 	)
 	item_list["Miscellaneous"] = list(
-		CASINO_PRIZE("Toy sword", /obj/item/toy/sword, 1, 50, "misc"),
-		CASINO_PRIZE("Waterflower", /obj/item/weapon/reagent_containers/spray/waterflower, 1, 50, "misc"),
-		CASINO_PRIZE("Horse stick", /obj/item/toy/stickhorse, 1, 50, "misc"),
-		CASINO_PRIZE("Katana", /obj/item/toy/katana, 1, 50, "misc"),
-		CASINO_PRIZE("Conch", /obj/item/toy/eight_ball/conch, 1, 50, "misc"),
-		CASINO_PRIZE("Eight ball", /obj/item/toy/eight_ball, 1, 50, "misc"),
-		CASINO_PRIZE("Foam sword", /obj/item/weapon/material/sword/foam, 1, 50, "misc"),
-		CASINO_PRIZE("Whistle", /obj/item/toy/bosunwhistle, 1, 50, "misc"),
-		CASINO_PRIZE("Golden cup", /obj/item/weapon/reagent_containers/food/drinks/golden_cup, 1, 50, "misc"),
-		CASINO_PRIZE("Quality cigars", /obj/item/weapon/storage/fancy/cigar/havana, 1, 50, "misc"),
-		CASINO_PRIZE("Casino wallet (kept after event)", /obj/item/weapon/storage/wallet/casino, 1, 50, "misc"),
-		CASINO_PRIZE("Casino cards", /obj/item/weapon/deck/cards/casino, 1, 50, "misc"),
+		CASINO_PRIZE("Winner's Medal", /obj/item/clothing/accessory/medal/gold/casino, 1, 30000, "misc"),
+		CASINO_PRIZE("Golden ID card", /obj/item/card/id/gold, 1, 1000, "misc"),
+		CASINO_PRIZE("Gold-trimmed pen", /obj/item/pen/fountain5, 1, 50, "misc"),
+		CASINO_PRIZE("Golden pen", /obj/item/pen/fountain7, 1, 350, "misc"),
+		CASINO_PRIZE("Toy sword", /obj/item/toy/sword, 1, 200, "misc"),
+		CASINO_PRIZE("Waterflower", /obj/item/reagent_containers/spray/waterflower, 1, 100, "misc"),
+		CASINO_PRIZE("Horse stick", /obj/item/toy/stickhorse, 1, 100, "misc"),
+		CASINO_PRIZE("Toy katana", /obj/item/toy/katana, 1, 200, "misc"),
+		CASINO_PRIZE("Magic conch", /obj/item/toy/eight_ball/conch, 1, 100, "misc"),
+		CASINO_PRIZE("Magic eight ball", /obj/item/toy/eight_ball, 1, 100, "misc"),
+		CASINO_PRIZE("Foam sword", /obj/item/material/sword/foam, 1, 200, "misc"),
+		CASINO_PRIZE("Whistle", /obj/item/toy/bosunwhistle, 1, 100, "misc"),
+		CASINO_PRIZE("Golden cup", /obj/item/reagent_containers/food/drinks/golden_cup, 1, 250, "misc"),
+		CASINO_PRIZE("Quality cigars", /obj/item/storage/fancy/cigar/havana, 1, 100, "misc"),
+		CASINO_PRIZE("Golden zippo lighter", /obj/item/flame/lighter/zippo/gold, 1, 100, "misc"),
+		CASINO_PRIZE("Candelabra", /obj/item/flame/candle/candelabra/everburn, 1, 400, "misc"),
+		CASINO_PRIZE("Casino wallet", /obj/item/storage/wallet/casino, 1, 200, "misc"),
+		CASINO_PRIZE("Casino cards", /obj/item/deck/cards/casino, 1, 200, "misc"),
+		CASINO_PRIZE("Instrument: Accordion", /obj/item/instrument/accordion, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Banjo", /obj/item/instrument/banjo, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Musical bikehorn", /obj/item/instrument/bikehorn, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Electric guitar", /obj/item/instrument/eguitar, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Glockenspiel", /obj/item/instrument/glockenspiel, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Guitar", /obj/item/instrument/guitar, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Harmonica", /obj/item/instrument/harmonica, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Synthethic Piano", /obj/item/instrument/piano_synth, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Recorder", /obj/item/instrument/recorder, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Saxophone", /obj/item/instrument/saxophone, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Trombone", /obj/item/instrument/trombone, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Trumpet", /obj/item/instrument/trumpet, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Violin", /obj/item/instrument/violin, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Xylophone", /obj/item/instrument/xylophone, 1, 500, "misc"),
+		CASINO_PRIZE("Instrument: Golden fiddle", /obj/item/instrument/violin/golden, 1, 1500, "misc"),
+		CASINO_PRIZE("Instrument: Trumpet (warning: spooky)", /obj/item/instrument/trumpet/spectral, 1, 1000, "misc"),
+		CASINO_PRIZE("Instrument: Trombone (warning: spooky)", /obj/item/instrument/trombone/spectral, 1, 1000, "misc"),
+		CASINO_PRIZE("Instrument: Saxophone (warning: spooky)", /obj/item/instrument/saxophone/spectral, 1, 1000, "misc"),
+		CASINO_PRIZE("Instrument: Musical Moth (you monster)", /obj/item/instrument/musicalmoth, 1, 500, "misc"),
 	)
 	item_list["Drinks"] = list(
-		CASINO_PRIZE("Redeemer's brew", /obj/item/weapon/reagent_containers/food/drinks/bottle/redeemersbrew, 1, 50, "drinks"),
-		CASINO_PRIZE("Poison wine", /obj/item/weapon/reagent_containers/food/drinks/bottle/pwine, 1, 50, "drinks"),
-		CASINO_PRIZE("Patron", /obj/item/weapon/reagent_containers/food/drinks/bottle/patron, 1, 50, "drinks"),
-		CASINO_PRIZE("Holy water", /obj/item/weapon/reagent_containers/food/drinks/bottle/holywater, 1, 50, "drinks"),
-		CASINO_PRIZE("Goldschlager", /obj/item/weapon/reagent_containers/food/drinks/bottle/goldschlager, 1, 50, "drinks"),
-		CASINO_PRIZE("Champagne", /obj/item/weapon/reagent_containers/food/drinks/bottle/champagne, 1, 50, "drinks"),
-		CASINO_PRIZE("Bottle of Nothing", /obj/item/weapon/reagent_containers/food/drinks/bottle/bottleofnothing, 1, 50, "drinks"),
-		CASINO_PRIZE("Whiskey bliss", /obj/item/weapon/reagent_containers/food/drinks/bottle/specialwhiskey, 1, 50, "drinks"),
+		CASINO_PRIZE("Redeemer's brew", /obj/item/reagent_containers/food/drinks/bottle/redeemersbrew, 1, 150, "drinks"),
+		CASINO_PRIZE("Poison wine", /obj/item/reagent_containers/food/drinks/bottle/pwine, 1, 150, "drinks"),
+		CASINO_PRIZE(REAGENT_PATRON, /obj/item/reagent_containers/food/drinks/bottle/patron, 1, 150, "drinks"),
+		CASINO_PRIZE("Holy water", /obj/item/reagent_containers/food/drinks/bottle/holywater, 1, 150, "drinks"),
+		CASINO_PRIZE(REAGENT_GOLDSCHLAGER, /obj/item/reagent_containers/food/drinks/bottle/goldschlager, 1, 150, "drinks"),
+		CASINO_PRIZE(REAGENT_CHAMPAGNE, /obj/item/reagent_containers/food/drinks/bottle/champagne, 1, 150, "drinks"),
+		CASINO_PRIZE("Bottle of Nothing", /obj/item/reagent_containers/food/drinks/bottle/bottleofnothing, 1, 150, "drinks"),
+		CASINO_PRIZE("Whiskey bliss", /obj/item/reagent_containers/food/drinks/bottle/specialwhiskey, 1, 150, "drinks"),
 	)
-
-	item_list["Implants"] = list(
-		CASINO_PRIZE("Implanter (Remember to get one unless you want to borrow from station!)", /obj/item/weapon/implanter, 1, 100, "implants"),
-		CASINO_PRIZE("Implant: Tazer", /obj/item/weapon/implantcase/taser, 1, 1000, "implants"),
-		CASINO_PRIZE("Implant: Medkit", /obj/item/weapon/implantcase/medkit, 1, 500, "implants"),
-		CASINO_PRIZE("Implant: Shades", /obj/item/weapon/implantcase/shades, 1, 750, "implants"),
-		CASINO_PRIZE("Implant: Sprinter", /obj/item/weapon/implantcase/sprinter, 1, 1500, "implants"),
-		CASINO_PRIZE("Implant: Toolkit", /obj/item/weapon/implantcase/toolkit, 1, 500, "implants"),
-		CASINO_PRIZE("Implant: Language", /obj/item/weapon/implantcase/vrlanguage, 1, 1000, "implants"),
-		CASINO_PRIZE("Implant: Analyzer", /obj/item/weapon/implantcase/analyzer, 1, 500, "implants"),
-		CASINO_PRIZE("Implant: Size control", /obj/item/weapon/implant/sizecontrol , 1, 500, "implants"),
-	)
-
-	item_list["Event"] = list(
+	item_list["Pets"] = list(
+		CASINO_PRIZE("Cat", /obj/item/grenade/spawnergrenade/casino, 1, 700, "pets"),
+		CASINO_PRIZE("Chicken", /obj/item/grenade/spawnergrenade/casino/chicken, 1, 700, "pets"),
+		CASINO_PRIZE("Cow", /obj/item/grenade/spawnergrenade/casino/cow, 1, 700, "pets"),
+		CASINO_PRIZE("Corgi", /obj/item/grenade/spawnergrenade/casino/corgi, 1, 900, "pets"),
+		CASINO_PRIZE("Fox", /obj/item/grenade/spawnergrenade/casino/fox, 1, 700, "pets"),
+		CASINO_PRIZE("Red panda", /obj/item/grenade/spawnergrenade/casino/redpanda, 1, 1200, "pets"),
+		CASINO_PRIZE("Otie", /obj/item/grenade/spawnergrenade/casino/otie, 1, 1500, "pets"),
+		CASINO_PRIZE("Snake", /obj/item/grenade/spawnergrenade/casino/snake, 1, 900, "pets"),
+		CASINO_PRIZE("Penguin", /obj/item/grenade/spawnergrenade/casino/penguin, 1, 900, "pets"),
+		CASINO_PRIZE("Fennec", /obj/item/grenade/spawnergrenade/casino/fennec, 1, 1200, "pets"),
+		CASINO_PRIZE("Bird", /obj/item/grenade/spawnergrenade/casino/goldcrest, 1, 1500, "pets"),
+		CASINO_PRIZE("Capture Crystal", /obj/item/capture_crystal, 1, 3000, "pets"),
 	)
 
 /obj/machinery/casino_prize_dispenser/power_change()
@@ -147,31 +196,31 @@
 		return
 	tgui_interact(user)
 
-/obj/machinery/casino_prize_dispenser/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/machinery/casino_prize_dispenser/attackby(obj/item/W as obj, mob/user as mob)
 	if(currently_vending)
-		if(istype(W, /obj/item/weapon/spacecasinocash))
-			to_chat(usr, "<span class='warning'>Please select prize on display with sufficient amount of chips.</span>")
+		if(istype(W, /obj/item/spacecasinocash))
+			to_chat(user, span_warning("Please select prize on display with sufficient amount of chips."))
 		else
 			SStgui.update_uis(src)
 			return // don't smack that machine with your 2 chips
 
-	if(istype(W, /obj/item/weapon/spacecasinocash))
+	if(istype(W, /obj/item/spacecasinocash))
 		attack_hand(user)
 		return
 	..()
 
-/obj/machinery/casino_prize_dispenser/proc/pay_with_chips(var/obj/item/weapon/spacecasinocash/cashmoney, mob/user, var/price)
+/obj/machinery/casino_prize_dispenser/proc/pay_with_chips(obj/item/spacecasinocash/cashmoney, mob/user, price)
 	//"cashmoney_:[cashmoney] user:[user] currently_vending:[currently_vending]"
 	if(price > cashmoney.worth)
-		to_chat(usr, "\icon[cashmoney] <span class='warning'>That is not enough chips.</span>")
+		to_chat(user, "[icon2html(cashmoney, user.client)] " + span_warning("That is not enough chips."))
 		return 0
 
-	if(istype(cashmoney, /obj/item/weapon/spacecasinocash))
-		visible_message("<span class='info'>\The [usr] inserts some chips into \the [src].</span>")
+	if(istype(cashmoney, /obj/item/spacecasinocash))
+		visible_message(span_info("\The [user] inserts some chips into \the [src]."))
 		cashmoney.worth -= price
 
 		if(cashmoney.worth <= 0)
-			usr.drop_from_inventory(cashmoney)
+			user.drop_from_inventory(cashmoney)
 			qdel(cashmoney)
 		else
 			cashmoney.update_icon()
@@ -179,7 +228,7 @@
 
 /obj/machinery/casino_prize_dispenser/ui_assets(mob/user)
 	return list(
-		get_asset_datum(/datum/asset/spritesheet/vending),
+		get_asset_datum(/datum/asset/spritesheet_batched/vending),
 	)
 
 /obj/machinery/casino_prize_dispenser/tgui_data(mob/user)
@@ -201,10 +250,10 @@
 		ui = new(user, src, "CasinoPrizeDispenser", name)
 		ui.open()
 
-/obj/machinery/casino_prize_dispenser/tgui_act(action, params)
+/obj/machinery/casino_prize_dispenser/tgui_act(action, params, datum/tgui/ui)
 	if(stat & (BROKEN|NOPOWER))
 		return
-	if(usr.stat || usr.restrained())
+	if(ui.user.stat || ui.user.restrained())
 		return
 	if(..())
 		return TRUE
@@ -234,44 +283,45 @@
 					restriction_check = category_implants
 				if("event")
 					restriction_check = category_event
+				if("pets")
+					restriction_check = category_pets
 				else
-					to_chat(usr, "<span class='warning'>Prize checkout error has occured, purchase cancelled.</span>")
+					to_chat(ui.user, span_warning("Prize checkout error has occurred, purchase cancelled."))
 					return FALSE
 
 			if(restriction_check < 1)
-				to_chat(usr, "<span class='warning'>[name] is restricted, this prize can't be bought.</span>")
+				to_chat(ui.user, span_warning("[name] is restricted, this prize can't be bought."))
 				return FALSE
 			if(restriction_check > 1)
 				item_given = TRUE
 
 			if(price <= 0 && item_given == TRUE)
-				vend(bi, usr)
+				vend(bi, ui.user)
 				return TRUE
 
 			currently_vending = bi
 
-			if(istype(usr.get_active_hand(), /obj/item/weapon/spacecasinocash))
-				var/obj/item/weapon/spacecasinocash/cash = usr.get_active_hand()
-				paid = pay_with_chips(cash, usr, price)
+			if(istype(ui.user.get_active_hand(), /obj/item/spacecasinocash))
+				var/obj/item/spacecasinocash/cash = ui.user.get_active_hand()
+				paid = pay_with_chips(cash, ui.user, price)
 			else
-				to_chat(usr, "<span class='warning'>Payment failure: Improper payment method, please provide chips.</span>")
+				to_chat(ui.user, span_warning("Payment failure: Improper payment method, please provide chips."))
 				return TRUE // we set this because they shouldn't even be able to get this far, and we want the UI to update.
 			if(paid)
 				if(item_given == TRUE)
-					vend(bi, usr)
+					vend(bi, ui.user)
 
 				speak("Thank you for your purchase, your [bi] has been logged.")
-				do_logging(currently_vending, usr, bi)
+				do_logging(currently_vending, ui.user, bi)
 				. = TRUE
 			else
-				to_chat(usr, "<span class='warning'>Payment failure: unable to process payment.</span>")
+				to_chat(ui.user, span_warning("Payment failure: unable to process payment."))
 
 /obj/machinery/casino_prize_dispenser/proc/vend(datum/data/casino_prize/bi, mob/user)
 	SStgui.update_uis(src)
 
 	if(ispath(bi.equipment_path, /obj/item/stack))
-		var/obj/item/stack/S = new bi.equipment_path(loc)
-		S.amount = bi.equipment_amt
+		new bi.equipment_path(loc, bi.equipment_amt)
 		playsound(src, 'sound/machines/vending/vending_drop.ogg', 100, 1)
 		return TRUE
 
@@ -289,7 +339,7 @@
 	log[++log.len] = prize_log
 	//Currently doesnt have an ingame way to show. Can only be viewed through View-Variables, to ensure theres no chance of players ckeys exposed - Jack
 
-/obj/machinery/casino_prize_dispenser/proc/speak(var/message)
+/obj/machinery/casino_prize_dispenser/proc/speak(message)
 	if(stat & NOPOWER)
 		return
 
@@ -297,9 +347,11 @@
 		return
 
 	for(var/mob/O in hearers(src, null))
-		O.show_message("<span class='game say'><span class='name'>\The [src]</span> beeps, \"[message]\"</span>",2)
+		O.show_message(span_npc_say(span_name("\The [src]") + " beeps, \"[message]\""),2)
 	return
 
 /obj/machinery/casino_prize_dispenser/process() //Might not need this, but just to be safe for now
 	if(stat & (BROKEN|NOPOWER))
 		return
+
+#undef CASINO_PRIZE

@@ -4,14 +4,14 @@
 /* --- Traffic Control Scripting Language --- */
 	// NanoTrasen TCS Language - Made by Doohl
 
-/n_Interpreter/TCS_Interpreter
+/datum/n_Interpreter/TCS_Interpreter
 	var/datum/TCS_Compiler/Compiler
 
-/n_Interpreter/TCS_Interpreter/HandleError(runtimeError/e)
+/datum/n_Interpreter/TCS_Interpreter/HandleError(datum/runtimeError/e)
 	Compiler.Holder.add_entry(e.ToString(), "Execution Error")
 
 /datum/TCS_Compiler
-	var/n_Interpreter/TCS_Interpreter/interpreter
+	var/datum/n_Interpreter/TCS_Interpreter/interpreter
 	var/obj/machinery/telecomms/server/Holder	// the server that is running the code
 	var/ready = 1 // 1 if ready to run code
 
@@ -21,11 +21,11 @@
 	*/
 
 /datum/TCS_Compiler/proc/Compile(code as message)
-	var/n_scriptOptions/nS_Options/options = new()
-	var/n_Scanner/nS_Scanner/scanner       = new(code, options)
+	var/datum/n_scriptOptions/nS_Options/options = new()
+	var/datum/n_Scanner/nS_Scanner/scanner       = new(code, options)
 	var/list/tokens                        = scanner.Scan()
-	var/n_Parser/nS_Parser/parser          = new(tokens, options)
-	var/node/BlockDefinition/GlobalBlock/program   	 = parser.Parse()
+	var/datum/n_Parser/nS_Parser/parser          = new(tokens, options)
+	var/datum/node/BlockDefinition/GlobalBlock/program   	 = parser.Parse()
 
 	var/list/returnerrors = list()
 
@@ -48,7 +48,7 @@
  *   var/datum/signal/signal - a telecomms signal
  * Returns: None
  */
-/datum/TCS_Compiler/proc/Run(var/datum/signal/signal)
+/datum/TCS_Compiler/proc/Run(datum/signal/signal)
 
 	if(!ready)
 		return
@@ -116,7 +116,7 @@
 
 				@param time: 		time to sleep in deciseconds (1/10th second)
 	*/
-	interpreter.SetProc("sleep", /proc/delay)
+	interpreter.SetProc("sleep", GLOBAL_PROC_REF(delay))
 
 	/*
 		-> Replaces a string with another string
@@ -127,7 +127,7 @@
 				@param replacestring: 	the string to replace the substring with
 
 	*/
-	interpreter.SetProc("replace", /proc/string_replacetext)
+	interpreter.SetProc("replace", GLOBAL_PROC_REF(string_replacetext))
 
 	/*
 		-> Locates an element/substring inside of a list or string
@@ -139,7 +139,7 @@
 				@param end:			the position to end in
 
 	*/
-	interpreter.SetProc("find", /proc/smartfind)
+	interpreter.SetProc("find", GLOBAL_PROC_REF(smartfind))
 
 	/*
 		-> Finds the length of a string or list
@@ -148,42 +148,42 @@
 				@param container: the list or container to measure
 
 	*/
-	interpreter.SetProc("length", /proc/smartlength)
+	interpreter.SetProc("length", GLOBAL_PROC_REF(smartlength))
 
 	/* -- Clone functions, carried from default BYOND procs --- */
 
 	// vector namespace
-	interpreter.SetProc("vector", /proc/n_list)
-	interpreter.SetProc("at", /proc/n_listpos)
-	interpreter.SetProc("copy", /proc/n_listcopy)
-	interpreter.SetProc("push_back", /proc/n_listadd)
-	interpreter.SetProc("remove", /proc/n_listremove)
-	interpreter.SetProc("cut", /proc/n_listcut)
-	interpreter.SetProc("swap", /proc/n_listswap)
-	interpreter.SetProc("insert", /proc/n_listinsert)
+	interpreter.SetProc("vector", GLOBAL_PROC_REF(n_list))
+	interpreter.SetProc("at", GLOBAL_PROC_REF(n_listpos))
+	interpreter.SetProc("copy", GLOBAL_PROC_REF(n_listcopy))
+	interpreter.SetProc("push_back", GLOBAL_PROC_REF(n_listadd))
+	interpreter.SetProc("remove", GLOBAL_PROC_REF(n_listremove))
+	interpreter.SetProc("cut", GLOBAL_PROC_REF(n_listcut))
+	interpreter.SetProc("swap", GLOBAL_PROC_REF(n_listswap))
+	interpreter.SetProc("insert", GLOBAL_PROC_REF(n_listinsert))
 
-	interpreter.SetProc("pick", /proc/n_pick)
-	interpreter.SetProc("prob", /proc/prob_chance)
-	interpreter.SetProc("substr", /proc/docopytext)
+	interpreter.SetProc("pick", GLOBAL_PROC_REF(n_pick))
+	interpreter.SetProc("prob", GLOBAL_PROC_REF(prob_chance))
+	interpreter.SetProc("substr", GLOBAL_PROC_REF(docopytext))
 
 	// Donkie~
 	// Strings
-	interpreter.SetProc("lower", /proc/n_lower)
-	interpreter.SetProc("upper", /proc/n_upper)
-	interpreter.SetProc("explode", /proc/string_explode)
-	interpreter.SetProc("repeat", /proc/n_repeat)
-	interpreter.SetProc("reverse", /proc/n_reverse)
-	interpreter.SetProc("tonum", /proc/n_str2num)
+	interpreter.SetProc("lower", GLOBAL_PROC_REF(n_lower))
+	interpreter.SetProc("upper", GLOBAL_PROC_REF(n_upper))
+	interpreter.SetProc("explode", GLOBAL_PROC_REF(string_explode))
+	interpreter.SetProc("repeat", GLOBAL_PROC_REF(n_repeat))
+	interpreter.SetProc("reverse", GLOBAL_PROC_REF(n_reverse))
+	interpreter.SetProc("tonum", GLOBAL_PROC_REF(n_str2num))
 
 	// Numbers
-	interpreter.SetProc("tostring", /proc/n_num2str)
-	interpreter.SetProc("sqrt", /proc/n_sqrt)
-	interpreter.SetProc("abs", /proc/n_abs)
-	interpreter.SetProc("floor", /proc/n_floor)
-	interpreter.SetProc("ceil", /proc/n_ceil)
-	interpreter.SetProc("round", /proc/n_round)
-	interpreter.SetProc("clamp", /proc/n_clamp)
-	interpreter.SetProc("inrange", /proc/n_inrange)
+	interpreter.SetProc("tostring", GLOBAL_PROC_REF(n_num2str))
+	interpreter.SetProc("sqrt", GLOBAL_PROC_REF(n_sqrt))
+	interpreter.SetProc("abs", GLOBAL_PROC_REF(n_abs))
+	interpreter.SetProc("floor", GLOBAL_PROC_REF(n_floor))
+	interpreter.SetProc("ceil", GLOBAL_PROC_REF(n_ceil))
+	interpreter.SetProc("round", GLOBAL_PROC_REF(n_round))
+	interpreter.SetProc("clamp", GLOBAL_PROC_REF(n_clamp))
+	interpreter.SetProc("inrange", GLOBAL_PROC_REF(n_inrange))
 	// End of Donkie~
 
 
@@ -201,7 +201,7 @@
 	if(interpreter.GetVar("$source") in S.stored_names)
 		setname = interpreter.GetVar("$source")
 	else
-		setname = "<i>[interpreter.GetVar("$source")]</i>"
+		setname = span_italics("[interpreter.GetVar("$source")]")
 
 	if(signal.data["name"] != setname)
 		signal.data["realname"] = setname
@@ -215,7 +215,7 @@
 
 /*  -- Actual language proc code --  */
 
-/datum/signal/proc/mem(var/address, var/value)
+/datum/signal/proc/mem(address, value)
 
 	if(istext(address))
 		var/obj/machinery/telecomms/server/S = data["server"]
@@ -227,14 +227,14 @@
 			S.memory[address] = value
 
 
-/datum/signal/proc/tcombroadcast(var/message, var/freq, var/source, var/job)
+/datum/signal/proc/tcombroadcast(message, freq, source, job)
 
 	var/datum/signal/newsign = new
 	var/obj/machinery/telecomms/server/S = data["server"]
-	var/obj/item/device/radio/hradio = S.server_radio
+	var/obj/item/radio/hradio = S.server_radio
 
 	if(!hradio)
-		error("[src] has no radio.")
+		log_world("## ERROR [src] has no radio.")
 		return
 
 	if((!message || message == "") && message != 0)
@@ -255,7 +255,7 @@
 	if(source in S.stored_names)
 		newsign.data["name"] = source
 	else
-		newsign.data["name"] = "<i>[html_encode(uppertext(source))]</i>"
+		newsign.data["name"] = span_italics("[html_encode(uppertext(source))]")
 	newsign.data["realname"] = newsign.data["name"]
 	newsign.data["job"] = job
 	newsign.data["compression"] = 0
@@ -265,7 +265,7 @@
 		freq = text2num(freq)
 	newsign.frequency = freq
 
-	var/datum/radio_frequency/connection = radio_controller.return_frequency(freq)
+	var/datum/radio_frequency/connection = SSradio.return_frequency(freq)
 	newsign.data["connection"] = connection
 
 
@@ -278,4 +278,3 @@
 	var/pass = S.relay_information(newsign, /obj/machinery/telecomms/hub)
 	if(!pass)
 		S.relay_information(newsign, /obj/machinery/telecomms/broadcaster) // send this simple message to broadcasters
-

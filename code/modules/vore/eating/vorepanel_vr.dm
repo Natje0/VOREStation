@@ -2,26 +2,34 @@
 // Vore management panel for players
 //
 
-#define BELLIES_MAX 40
-#define BELLIES_NAME_MIN 2
-#define BELLIES_NAME_MAX 40
-#define BELLIES_DESC_MAX 4096
-#define FLAVOR_MAX 400
+#define STATION_PREF_NAME "Virgo"
+#define VORE_BELLY_TAB 0
+#define VORE_INSIDE_TAB 1
+#define SOULCATCHER_TAB 2
+#define GENERAL_TAB 3
+#define PREFERENCE_TAB 4
 
-/mob/living
+/mob
 	var/datum/vore_look/vorePanel
 
-/mob/living/proc/insidePanel()
+/mob/proc/insidePanel()
 	set name = "Vore Panel"
-	set category = "IC"
+	set category = "IC.Vore"
+
+	if(SSticker.current_state == GAME_STATE_STARTUP)
+		return
+
+	if(!isliving(src))
+		init_vore(TRUE)
 
 	if(!vorePanel)
-		log_debug("[src] ([type], \ref[src]) didn't have a vorePanel and tried to use the verb.")
+		if(!isnewplayer(src))
+			log_vore("[src] ([type], \ref[src]) didn't have a vorePanel and tried to use the verb.")
 		vorePanel = new(src)
 
 	vorePanel.tgui_interact(src)
 
-/mob/living/proc/updateVRPanel() //Panel popup update call from belly events.
+/mob/proc/updateVRPanel() //Panel popup update call from belly events.
 	if(vorePanel)
 		SStgui.update_uis(vorePanel)
 
@@ -29,11 +37,21 @@
 // Callback Handler for the Inside form
 //
 /datum/vore_look
-	var/mob/living/host // Note, we do this in case we ever want to allow people to view others vore panels
+	var/mob/host // Note, we do this in case we ever want to allow people to view others vore panels
 	var/unsaved_changes = FALSE
 	var/show_pictures = TRUE
+	var/icon_overflow = FALSE
+	var/max_icon_content = 21 //Contents above this disable icon mode. 21 for nice 3 rows to fill the default panel window.
+	var/active_tab = 0 // our current tab
+	var/active_vore_tab = 0 // our vore sub tab
+	var/message_option = 0 // our examine subtab
+	var/message_subtab // our examine subtab
+	var/sc_message_subtab // our soulcatcher message subtab
+	var/aset_message_subtab
+	var/selected_message
+	var/list/preset_colors
 
-/datum/vore_look/New(mob/living/new_host)
+/datum/vore_look/New(mob/new_host)
 	if(istype(new_host))
 		host = new_host
 	. = ..()
@@ -42,15 +60,17 @@
 	host = null
 	. = ..()
 
-/datum/vore_look/ui_assets(mob/user)
+/datum/vore_look/tgui_close(mob/user)
+	if(user)
+		user.write_preference_directly(/datum/preference/text/preset_colors, preset_colors)
 	. = ..()
-	. += get_asset_datum(/datum/asset/spritesheet/vore)
 
 /datum/vore_look/tgui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		ui = new(user, src, "VorePanel", "Vore Panel")
 		ui.open()
+		ui.set_autoupdate(FALSE)
 
 // This looks weird, but all tgui_host is used for is state checking
 // So this allows us to use the self_state just fine.
@@ -71,13 +91,37 @@
 		key = "[target.type]"
 	else if(ismob(target))
 		var/mob/M = target
-		key = "\ref[target][M.real_name]"
+		if(istype(M,/mob/living/simple_mob)) //not generating unique icons for every simplemob(number)
+			var/mob/living/simple_mob/S = M
+			key = "[S.icon_living]"
+		else
+			key = "\ref[target][M.real_name]"
 	if(nom_icons[key])
 		. = nom_icons[key]
 	else
 		. = icon2base64(getFlatIcon(target,defdir=SOUTH,no_anim=TRUE))
 		nom_icons[key] = .
 
+/datum/vore_look/tgui_static_data(mob/user)
+	var/list/data = ..()
+
+	data["vore_words"] = list(
+		"%goo" = GLOB.vore_words_goo,
+		"%happybelly" = GLOB.vore_words_hbellynoises,
+		"%fat" = GLOB.vore_words_fat,
+		"%grip" = GLOB.vore_words_grip,
+		"%cozy" = GLOB.vore_words_cozyholdingwords,
+		"%angry" = GLOB.vore_words_angry,
+		"%acid" = GLOB.vore_words_acid,
+		"%snack" = GLOB.vore_words_snackname,
+		"%hot" = GLOB.vore_words_hot,
+		"%snake" = GLOB.vore_words_snake,
+	)
+	data["min_belly_name"] = BELLIES_NAME_MIN
+	data["max_belly_name"] = BELLIES_NAME_MAX
+	preset_colors = user.read_preference(/datum/preference/text/preset_colors)
+
+	return data
 
 /datum/vore_look/tgui_data(mob/user)
 	var/list/data = list()
@@ -85,183 +129,152 @@
 	if(!host)
 		return data
 
+	// General Data
 	data["unsaved_changes"] = unsaved_changes
-	data["show_pictures"] = show_pictures
+	data["active_tab"] = active_tab
+	data["persist_edit_mode"] = host.persistend_edit_mode
+	data["presets"] = preset_colors
 
-	var/atom/hostloc = host.loc
-	var/list/inside = list()
-	if(isbelly(hostloc))
-		var/obj/belly/inside_belly = hostloc
-		var/mob/living/pred = inside_belly.owner
+	// Inisde Data
+	data["inside"] = get_inside_data(host)
 
-		inside = list(
-			"absorbed" = host.absorbed,
-			"belly_name" = inside_belly.name,
-			"belly_mode" = inside_belly.digest_mode,
-			"desc" = inside_belly.desc || "No description.",
-			"pred" = pred,
-			"ref" = "\ref[inside_belly]",
-		)
+	data["host_mobtype"] = null
+	data["show_pictures"] = null
+	data["icon_overflow"] = null
+	data["prey_abilities"] = null
+	data["intent_data"] = null
+	data["our_bellies"] = null
+	data["selected"] = null
+	data["soulcatcher"] = null
+	data["abilities"] = null
+	data["prefs"] = null
+	data["general_pref_data"] = null
 
-		var/list/inside_contents = list()
-		for(var/atom/movable/O in inside_belly)
-			if(O == host)
-				continue
+	switch(active_tab)
+		if(VORE_BELLY_TAB)
+			data["active_vore_tab"] = active_vore_tab
+			data["host_mobtype"] = get_host_mobtype(host)
 
-			var/list/info = list(
-				"name" = "[O]",
-				"absorbed" = FALSE,
-				"stat" = 0,
-				"ref" = "\ref[O]",
-				"outside" = FALSE,
-			)
-			if(show_pictures)
-				info["icon"] = cached_nom_icon(O)
-			if(isliving(O))
-				var/mob/living/M = O
-				info["stat"] = M.stat
-				if(M.absorbed)
-					info["absorbed"] = TRUE
-			inside_contents.Add(list(info))
-		inside["contents"] = inside_contents
-	data["inside"] = inside
+			// Content Data
+			data["show_pictures"] = show_pictures
+			data["icon_overflow"] = icon_overflow
 
-	var/list/our_bellies = list()
-	for(var/obj/belly/B as anything in host.vore_organs)
-		our_bellies.Add(list(list(
-			"selected" = (B == host.vore_selected),
-			"name" = B.name,
-			"ref" = "\ref[B]",
-			"digest_mode" = B.digest_mode,
-			"contents" = LAZYLEN(B.contents),
-		)))
-	data["our_bellies"] = our_bellies
+			// List of all our bellies
+			data["our_bellies"] = get_vorebellies(host)
 
-	var/list/selected_list = null
-	if(host.vore_selected)
-		var/obj/belly/selected = host.vore_selected
-		selected_list = list(
-			"belly_name" = selected.name,
-			"is_wet" = selected.is_wet,
-			"wet_loop" = selected.wet_loop,
-			"mode" = selected.digest_mode,
-			"item_mode" = selected.item_digest_mode,
-			"verb" = selected.vore_verb,
-			"desc" = selected.desc,
-			"fancy" = selected.fancy_vore,
-			"sound" = selected.vore_sound,
-			"release_sound" = selected.release_sound,
-			// "messages" // TODO
-			"can_taste" = selected.can_taste,
-			"egg_type" = selected.egg_type,
-			"nutrition_percent" = selected.nutrition_percent,
-			"digest_brute" = selected.digest_brute,
-			"digest_burn" = selected.digest_burn,
-			"digest_oxy" = selected.digest_oxy,
-			"bulge_size" = selected.bulge_size,
-			"display_absorbed_examine" = selected.display_absorbed_examine,
-			"shrink_grow_size" = selected.shrink_grow_size,
-			"emote_time" = selected.emote_time,
-			"emote_active" = selected.emote_active,
-			"belly_fullscreen" = selected.belly_fullscreen,
-		)
+			// Selected belly data. TODO, split this into sub data per tab, we don't need all of this at once, ever!
+			data["selected"] = get_selected_data(host)
 
-		var/list/addons = list()
-		for(var/flag_name in selected.mode_flag_list)
-			if(selected.mode_flags & selected.mode_flag_list[flag_name])
-				addons.Add(flag_name)
-		selected_list["addons"] = addons
+		if(VORE_INSIDE_TAB)
+			// Content Data
+			data["show_pictures"] = show_pictures
+			data["icon_overflow"] = icon_overflow
+			var/atom/hostloc = host.loc
+			// Allow VorePanel to show pred belly details even while indirectly inside
+			if(isliving(host))
+				var/mob/living/human_host = host
+				hostloc = human_host.surrounding_belly()
+			data["prey_abilities"] = get_prey_abilities(host, hostloc)
+			data["intent_data"] = get_intent_data(host, hostloc)
 
-		selected_list["egg_type"] = selected.egg_type
-		selected_list["contaminates"] = selected.contaminates
-		selected_list["contaminate_flavor"] = null
-		selected_list["contaminate_color"] = null
-		if(selected.contaminates)
-			selected_list["contaminate_flavor"] = selected.contamination_flavor
-			selected_list["contaminate_color"] = selected.contamination_color
+		if(SOULCATCHER_TAB)
+			// Soulcatcher and abilities
+			data["our_bellies"] = get_vorebellies(host, FALSE)
+			data["soulcatcher"] = get_soulcatcher_data(host)
+			data["abilities"] = get_ability_data(host)
 
-		selected_list["escapable"] = selected.escapable
-		selected_list["interacts"] = list()
-		if(selected.escapable)
-			selected_list["interacts"]["escapechance"] = selected.escapechance
-			selected_list["interacts"]["escapetime"] = selected.escapetime
-			selected_list["interacts"]["transferchance"] = selected.transferchance
-			selected_list["interacts"]["transferlocation"] = selected.transferlocation
-			selected_list["interacts"]["absorbchance"] = selected.absorbchance
-			selected_list["interacts"]["digestchance"] = selected.digestchance
+		if(PREFERENCE_TAB)
+			// Preference data, we only ever need that when we go to the pref page!
+			data["prefs"] = get_preference_data(host)
+			// Content Data
+			data["show_pictures"] = show_pictures
+			data["icon_overflow"] = icon_overflow
 
-		selected_list["disable_hud"] = selected.disable_hud
-		selected_list["possible_fullscreens"] = icon_states('icons/mob/screen_full_vore.dmi')
-
-		var/list/selected_contents = list()
-		for(var/O in selected)
-			var/list/info = list(
-				"name" = "[O]",
-				"absorbed" = FALSE,
-				"stat" = 0,
-				"ref" = "\ref[O]",
-				"outside" = TRUE,
-			)
-			if(show_pictures)
-				info["icon"] = cached_nom_icon(O)
-			if(isliving(O))
-				var/mob/living/M = O
-				info["stat"] = M.stat
-				if(M.absorbed)
-					info["absorbed"] = TRUE
-			selected_contents.Add(list(info))
-		selected_list["contents"] = selected_contents
-
-	data["selected"] = selected_list
-	data["prefs"] = list(
-		"digestable" = host.digestable,
-		"devourable" = host.devourable,
-		"resizable" = host.resizable,
-		"feeding" = host.feeding,
-		"absorbable" = host.absorbable,
-		"digest_leave_remains" = host.digest_leave_remains,
-		"allowmobvore" = host.allowmobvore,
-		"permit_healbelly" = host.permit_healbelly,
-		"show_vore_fx" = host.show_vore_fx,
-		"can_be_drop_prey" = host.can_be_drop_prey,
-		"can_be_drop_pred" = host.can_be_drop_pred,
-		"allow_spontaneous_tf" = host.allow_spontaneous_tf,
-		"step_mechanics_active" = host.step_mechanics_pref,
-		"pickup_mechanics_active" = host.pickup_pref,
-		"noisy" = host.noisy,
-	)
+		if(GENERAL_TAB)
+			data["general_pref_data"] = get_general_data(host)
+			data["our_bellies"] = get_vorebellies(host, FALSE)
 
 	return data
 
-/datum/vore_look/tgui_act(action, params)
+/datum/vore_look/tgui_act(action, params, datum/tgui/ui)
 	if(..())
 		return TRUE
 
 	switch(action)
+		if("change_tab")
+			var/new_tab = params["tab"]
+			if(isnum(new_tab))
+				active_tab = new_tab
+			return TRUE
+
+		if("change_vore_tab")
+			var/new_tab = params["tab"]
+			if(isnum(new_tab))
+				active_vore_tab = new_tab
+			return TRUE
+
+		if("change_message_option")
+			var/new_tab = params["tab"]
+			if(isnum(new_tab))
+				message_option = new_tab
+				message_subtab = null
+				selected_message = null
+			return TRUE
+
+		if("change_message_type")
+			var/new_tab = params["tab"]
+			if(istext(new_tab))
+				message_subtab = new_tab
+				selected_message = null
+			return TRUE
+
+		if("set_current_message")
+			var/new_tab = params["tab"]
+			if(istext(new_tab))
+				selected_message = new_tab
+			return TRUE
+
+		if("change_sc_message_option")
+			var/new_tab = params["tab"]
+			if(istext(new_tab))
+				sc_message_subtab = new_tab
+			return TRUE
+
+		if("change_aset_message_option")
+			var/new_tab = params["tab"]
+			if(istext(new_tab))
+				aset_message_subtab = new_tab
+			return TRUE
+
 		if("show_pictures")
 			show_pictures = !show_pictures
 			return TRUE
-		if("int_help")
-			tgui_alert(usr, "These control how your belly responds to someone using 'resist' while inside you. The percent chance to trigger each is listed below, \
-					and you can change them to whatever you see fit. Setting them to 0% will disable the possibility of that interaction. \
-					These only function as long as interactions are turned on in general. Keep in mind, the 'belly mode' interactions (digest/absorb) \
-					will affect all prey in that belly, if one resists and triggers digestion/absorption. If multiple trigger at the same time, \
-					only the first in the order of 'Escape > Transfer > Absorb > Digest' will occur.","Interactions Help")
+
+		if("toggle_editmode_persistence")
+			host.persistend_edit_mode = !host.persistend_edit_mode
 			return TRUE
+
+		if("prey_ability")
+			if(!isliving(ui.user))
+				return FALSE
+			return perform_prey_ability(ui.user, params)
 
 		// Host is inside someone else, and is trying to interact with something else inside that person.
 		if("pick_from_inside")
-			return pick_from_inside(usr, params)
+			return pick_from_inside(ui.user, params)
 
 		// Host is trying to interact with something in host's belly.
 		if("pick_from_outside")
-			return pick_from_outside(usr, params)
+			return pick_from_outside(ui.user, params)
 
 		if("newbelly")
 			if(host.vore_organs.len >= BELLIES_MAX)
 				return FALSE
 
-			var/new_name = html_encode(input(usr,"New belly's name:","New Belly") as text|null)
+			var/new_name = sanitize(params["val"], BELLIES_NAME_MAX, FALSE, TRUE, FALSE)
+
+			if(!new_name)
+				return FALSE
 
 			var/failure_msg
 			if(length(new_name) > BELLIES_NAME_MAX || length(new_name) < BELLIES_NAME_MIN)
@@ -274,22 +287,36 @@
 						break
 
 			if(failure_msg) //Something went wrong.
-				tgui_alert_async(usr, failure_msg, "Error!")
+				tgui_alert_async(ui.user, failure_msg, "Error!")
 				return TRUE
 
 			var/obj/belly/NB = new(host)
 			NB.name = new_name
 			host.vore_selected = NB
+			//Ensures that new stomachs that are made have the same silicon overlay pref as the first stomach.
+			if(LAZYLEN(host.vore_organs))
+				var/obj/belly/belly_to_check = host.vore_organs[1]
+				NB.silicon_belly_overlay_preference = belly_to_check.silicon_belly_overlay_preference
 			unsaved_changes = TRUE
 			return TRUE
+		if("importpanel")
+			var/datum/vore_look/import_panel/importPanel
+			if(!importPanel)
+				importPanel = new(ui.user)
 
+			if(!importPanel)
+				to_chat(ui.user,span_notice("Import panel undefined: [importPanel]"))
+				return FALSE
+
+			importPanel.open_import_panel(ui.user)
+			return TRUE
 		if("bellypick")
 			host.vore_selected = locate(params["bellypick"])
 			return TRUE
 		if("move_belly")
 			var/dir = text2num(params["dir"])
 			if(LAZYLEN(host.vore_organs) <= 1)
-				to_chat(usr, "<span class='warning'>You can't sort bellies with only one belly to sort...</span>")
+				to_chat(ui.user, span_warning("You can't sort bellies with only one belly to sort..."))
 				return TRUE
 
 			var/current_index = host.vore_organs.Find(host.vore_selected)
@@ -300,51 +327,74 @@
 			return TRUE
 
 		if("set_attribute")
-			return set_attr(usr, params)
+			return set_attr(ui.user, params)
 
 		if("saveprefs")
-			if(!ishuman(host) && !issilicon(host))
-				var/choice = tgui_alert(usr, "Warning: Saving your vore panel while playing what is very-likely not your normal character will overwrite whatever character you have loaded in character setup. Maybe this is your 'playing a simple mob' slot, though. Are you SURE you want to overwrite your current slot with these vore bellies?", "WARNING!", list("No, abort!", "Yes, save."))
+			if(isnewplayer(host))
+				var/choice = tgui_alert(ui.user, "Warning: Saving your vore panel while in the lobby will save it to the CURRENTLY LOADED character slot, and potentially overwrite it. Are you SURE you want to overwrite your current slot with these vore bellies?", "WARNING!", list("No, abort!", "Yes, save."))
+				if(choice != "Yes, save.")
+					return TRUE
+			else if(host.real_name != host.client.prefs.read_preference(/datum/preference/name/real_name) || (!ishuman(host) && !issilicon(host)))
+				var/choice = tgui_alert(ui.user, "Warning: Saving your vore panel while playing what is very-likely not your normal character will overwrite whatever character you have loaded in character setup. Maybe this is your 'playing a simple mob' slot, though. Are you SURE you want to overwrite your current slot with these vore bellies?", "WARNING!", list("No, abort!", "Yes, save."))
+				if(choice != "Yes, save.")
+					return TRUE
+			// Lets check for unsavable bellies...
+			var/list/unsavable_bellies = list()
+			for(var/obj/belly/B in host.vore_organs)
+				if(B.prevent_saving)
+					unsavable_bellies += B.name
+			if(LAZYLEN(unsavable_bellies))
+				var/choice = tgui_alert(ui.user, "Warning: One or more of your vore organs are unsavable. Saving now will save every vore belly except \[[jointext(unsavable_bellies, ", ")]\]. Are you sure you want to save?", "WARNING!", list("No, abort!", "Yes, save."))
 				if(choice != "Yes, save.")
 					return TRUE
 			if(!host.save_vore_prefs())
-				tgui_alert_async(usr, "ERROR: Virgo-specific preferences failed to save!","Error")
+				tgui_alert_async(ui.user, "ERROR: " + STATION_PREF_NAME + "-specific preferences failed to save!","Error")
 			else
-				to_chat(usr, "<span class='notice'>Virgo-specific preferences saved!</span>")
+				to_chat(ui.user, span_notice(STATION_PREF_NAME + "-specific preferences saved!"))
 				unsaved_changes = FALSE
 			return TRUE
 		if("reloadprefs")
-			var/alert = tgui_alert(usr, "Are you sure you want to reload character slot preferences? This will remove your current vore organs and eject their contents.","Confirmation",list("Reload","Cancel"))
+			var/alert = tgui_alert(ui.user, "Are you sure you want to reload character slot preferences? This will remove your current vore organs and eject their contents.","Confirmation",list("Reload","Cancel"))
 			if(alert != "Reload")
 				return FALSE
 			if(!host.apply_vore_prefs())
-				tgui_alert_async(usr, "ERROR: Virgo-specific preferences failed to apply!","Error")
+				tgui_alert_async(ui.user, "ERROR: " + STATION_PREF_NAME + "-specific preferences failed to apply!","Error")
 			else
-				to_chat(usr,"<span class='notice'>Virgo-specific preferences applied from active slot!</span>")
+				to_chat(ui.user,span_notice(STATION_PREF_NAME + "-specific preferences applied from active slot!"))
 				unsaved_changes = FALSE
 			return TRUE
-		if("setflavor")
-			var/new_flavor = html_encode(input(usr,"What your character tastes like (400ch limit). This text will be printed to the pred after 'X tastes of...' so just put something like 'strawberries and cream':","Character Flavor",host.vore_taste) as text|null)
-			if(!new_flavor)
+		if("loadprefsfromslot")
+			var/alert = tgui_alert(ui.user, "Are you sure you want to load another character slot's preferences? This will remove your current vore organs and eject their contents. This will not be immediately saved to your character slot, and you will need to save manually to overwrite your current bellies and preferences.","Confirmation",list("Load","Cancel"))
+			if(alert != "Load")
+				return FALSE
+			if(!host.load_vore_prefs_from_slot())
+				tgui_alert_async(ui.user, "ERROR: Vore-specific preferences failed to apply!","Error")
+			else
+				to_chat(ui.user,span_notice("Vore-specific preferences applied from active slot!"))
+				unsaved_changes = TRUE
+			return TRUE
+		//"Belly HTML Export Earlyport"
+		if("exportpanel")
+			if(!ui.user)
 				return FALSE
 
-			new_flavor = readd_quotes(new_flavor)
-			if(length(new_flavor) > FLAVOR_MAX)
-				tgui_alert_async(usr, "Entered flavor/taste text too long. [FLAVOR_MAX] character limit.","Error!")
+			var/datum/vore_look/export_panel/exportPanel
+			if(!exportPanel)
+				exportPanel = new(ui.user)
+
+			if(!exportPanel)
+				to_chat(ui.user,span_notice("Export panel undefined: [exportPanel]"))
 				return FALSE
-			host.vore_taste = new_flavor
+
+			exportPanel.open_export_panel(ui.user)
+
+			return TRUE
+		if(TASTE_FLAVOR)
+			host.vore_taste = sanitize(params["val"], FLAVOR_MAX, FALSE, TRUE, FALSE)
 			unsaved_changes = TRUE
 			return TRUE
-		if("setsmell")
-			var/new_smell = html_encode(input(usr,"What your character smells like (400ch limit). This text will be printed to the pred after 'X smells of...' so just put something like 'strawberries and cream':","Character Smell",host.vore_smell) as text|null)
-			if(!new_smell)
-				return FALSE
-
-			new_smell = readd_quotes(new_smell)
-			if(length(new_smell) > FLAVOR_MAX)
-				tgui_alert_async(usr, "Entered perfume/smell text too long. [FLAVOR_MAX] character limit.","Error!")
-				return FALSE
-			host.vore_smell = new_smell
+		if(SMELL_FLAVOR)
+			host.vore_smell = sanitize(params["val"], FLAVOR_MAX, FALSE, TRUE, FALSE)
 			unsaved_changes = TRUE
 			return TRUE
 		if("toggle_dropnom_pred")
@@ -359,6 +409,30 @@
 				host.client.prefs_vr.can_be_drop_prey = host.can_be_drop_prey
 			unsaved_changes = TRUE
 			return TRUE
+		if("toggle_afk_pred")
+			host.can_be_afk_pred = !host.can_be_afk_pred
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.can_be_afk_pred = host.can_be_afk_pred
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_afk_prey")
+			host.can_be_afk_prey = !host.can_be_afk_prey
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.can_be_afk_prey = host.can_be_afk_prey
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_latejoin_vore")
+			host.latejoin_vore = !host.latejoin_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.latejoin_vore = host.latejoin_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_latejoin_prey")
+			host.latejoin_prey = !host.latejoin_prey
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.latejoin_prey = host.latejoin_prey
+			unsaved_changes = TRUE
+			return TRUE
 		if("toggle_allow_spontaneous_tf")
 			host.allow_spontaneous_tf = !host.allow_spontaneous_tf
 			if(host.client.prefs_vr)
@@ -369,6 +443,30 @@
 			host.digestable = !host.digestable
 			if(host.client.prefs_vr)
 				host.client.prefs_vr.digestable = host.digestable
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_allowtemp")
+			host.allowtemp = !host.allowtemp
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.allowtemp = host.allowtemp
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_global_privacy")
+			host.eating_privacy_global = !host.eating_privacy_global
+			if(host.client.prefs_vr)
+				host.eating_privacy_global = host.eating_privacy_global
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_death_privacy")
+			host.vore_death_privacy = !host.vore_death_privacy
+			if(host.client.prefs_vr)
+				host.vore_death_privacy = host.vore_death_privacy
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_mimicry")
+			host.allow_mimicry = !host.allow_mimicry
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.allow_mimicry = host.allow_mimicry
 			unsaved_changes = TRUE
 			return TRUE
 		if("toggle_devour")
@@ -419,6 +517,24 @@
 				host.client.prefs_vr.pickup_pref = host.pickup_pref
 			unsaved_changes = TRUE
 			return TRUE
+		if("toggle_strippref")
+			host.strip_pref = !host.strip_pref
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.strip_pref = host.strip_pref
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_contaminate_pref")
+			host.contaminate_pref = !host.contaminate_pref
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.contaminate_pref = host.contaminate_pref
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_allow_mind_transfer")
+			host.allow_mind_transfer = !host.allow_mind_transfer
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.allow_mind_transfer = host.allow_mind_transfer
+			unsaved_changes = TRUE
+			return TRUE
 		if("toggle_healbelly")
 			host.permit_healbelly = !host.permit_healbelly
 			if(host.client.prefs_vr)
@@ -429,15 +545,395 @@
 			host.show_vore_fx = !host.show_vore_fx
 			if(host.client.prefs_vr)
 				host.client.prefs_vr.show_vore_fx = host.show_vore_fx
-			if(!host.show_vore_fx)
+			if (isbelly(host.loc))
+				var/obj/belly/B = host.loc
+				B.vore_fx(host)
+			else
 				host.clear_fullscreen("belly")
-				if(!host.hud_used.hud_shown)
-					host.toggle_hud_vis()
+			if(!host.hud_used.hud_shown)
+				host.toggle_hud_vis()
 			unsaved_changes = TRUE
 			return TRUE
 		if("toggle_noisy")
 			host.noisy = !host.noisy
 			unsaved_changes = TRUE
+			return TRUE
+		if("set_max_voreoverlay_alpha")
+			var/new_alpha = CLAMP(params["val"], 0, 255)
+			host.max_voreoverlay_alpha = new_alpha
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.max_voreoverlay_alpha = host.max_voreoverlay_alpha
+			if (isbelly(host.loc))
+				var/obj/belly/B = host.loc
+				B.vore_fx(host)
+			unsaved_changes = TRUE
+			return TRUE
+		// liquid belly code
+		if("liq_set_attribute")
+			return liq_set_attr(ui.user, params)
+		if("toggle_liq_rec")
+			host.receive_reagents = !host.receive_reagents
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.receive_reagents = host.receive_reagents
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_liq_giv")
+			host.give_reagents = !host.give_reagents
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.give_reagents = host.give_reagents
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_liq_apply")
+			host.apply_reagents = !host.apply_reagents
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.apply_reagents = host.apply_reagents
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_autotransferable")
+			host.autotransferable = !host.autotransferable
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.autotransferable = host.autotransferable
+			unsaved_changes = TRUE
+			return TRUE
+		//Belch code
+		if("toggle_noisy_full")
+			host.noisy_full = !host.noisy_full
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_drop_vore")
+			host.drop_vore = !host.drop_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.drop_vore = host.drop_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_slip_vore")
+			host.slip_vore = !host.slip_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.slip_vore = host.slip_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_stumble_vore")
+			host.stumble_vore = !host.stumble_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.stumble_vore = host.stumble_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_throw_vore")
+			host.throw_vore = !host.throw_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.throw_vore = host.throw_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_phase_vore")
+			host.phase_vore = !host.phase_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.phase_vore = host.phase_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_food_vore")
+			host.food_vore = !host.food_vore
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.food_vore = host.food_vore
+			unsaved_changes = TRUE
+			return TRUE
+		if("set_spont_belly")
+			return set_spont_belly(params)
+		if("toggle_consume_liquid_belly")
+			host.consume_liquid_belly = !host.consume_liquid_belly
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.consume_liquid_belly = host.consume_liquid_belly
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_digest_pain")
+			host.digest_pain = !host.digest_pain
+			unsaved_changes = TRUE
+			return TRUE
+		if("switch_selective_mode_pref")
+			var/new_selective_preference = params["val"]
+			if(new_selective_preference == host.selective_preference)
+				return FALSE
+			host.selective_preference = new_selective_preference
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.selective_preference = host.selective_preference
+			unsaved_changes = TRUE
+			return TRUE
+		if("switch_strip_mode_pref")
+			var/new_size_strip_pref = text2num(params["val"])
+			new_size_strip_pref = clamp(new_size_strip_pref, SIZESTRIP_NONE, SIZESTRIP_ALL)
+			if(new_size_strip_pref == host.size_strip_preference)
+				return FALSE
+			host.size_strip_preference = new_size_strip_pref
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.size_strip_preference = host.size_strip_preference
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_nutrition_ex")
+			host.nutrition_message_visible = !host.nutrition_message_visible
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_weight_ex")
+			host.weight_message_visible = !host.weight_message_visible
+			unsaved_changes = TRUE
+			return TRUE
+		if("set_vs_color")
+			var/belly_choice = params["attribute"]
+			if(!(belly_choice in host.vore_icon_bellies))
+				return FALSE
+			var/newcolor = sanitize_hexcolor(lowertext(params["val"]))
+			if(!newcolor)
+				return FALSE
+			host.vore_sprite_color[belly_choice] = newcolor
+			host.update_icons_body()
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_vs_multiply")
+			var/belly_choice = params["attribute"]
+			if(!(belly_choice in host.vore_icon_bellies))
+				return FALSE
+			if(!host.vore_sprite_multiply[belly_choice])
+				host.vore_sprite_multiply[belly_choice] = TRUE
+			else
+				host.vore_sprite_multiply[belly_choice] = !host.vore_sprite_multiply[belly_choice]
+			host.update_icons_body()
+			unsaved_changes = TRUE
+			return TRUE
+		//vore sprites color
+		if("set_belly_rub")
+			var/rub_target = html_encode(params["val"])
+			if(rub_target == "Current Selected")
+				host.belly_rub_target = null
+			else
+				host.belly_rub_target = rub_target
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.belly_rub_target = host.belly_rub_target
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_no_latejoin_vore_warning")
+			host.no_latejoin_vore_warning = !host.no_latejoin_vore_warning
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_vore_warning = host.no_latejoin_vore_warning
+			if(host.no_latejoin_vore_warning_persists)
+				unsaved_changes = TRUE
+			return TRUE
+		if("toggle_no_latejoin_prey_warning")
+			host.no_latejoin_prey_warning = !host.no_latejoin_prey_warning
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_prey_warning = host.no_latejoin_prey_warning
+			if(host.no_latejoin_prey_warning_persists)
+				unsaved_changes = TRUE
+			return TRUE
+		if("adjust_no_latejoin_vore_warning_time")
+			host.no_latejoin_vore_warning_time = text2num(params["new_pred_time"])
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_vore_warning_time = host.no_latejoin_vore_warning_time
+			if(host.no_latejoin_vore_warning_persists)
+				unsaved_changes = TRUE
+			return TRUE
+		if("adjust_no_latejoin_prey_warning_time")
+			host.no_latejoin_prey_warning_time = text2num(params["new_prey_time"])
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_prey_warning_time = host.no_latejoin_prey_warning_time
+			if(host.no_latejoin_prey_warning_persists)
+				unsaved_changes = TRUE
+			return TRUE
+		if("toggle_no_latejoin_vore_warning_persists")
+			host.no_latejoin_vore_warning_persists = !host.no_latejoin_vore_warning_persists
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_vore_warning_persists = host.no_latejoin_vore_warning_persists
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_no_latejoin_prey_warning_persists")
+			host.no_latejoin_prey_warning_persists = !host.no_latejoin_prey_warning_persists
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.no_latejoin_prey_warning_persists = host.no_latejoin_prey_warning_persists
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_vore_pref_types")
+			var/toggle_pref_flag = params["val"]
+			if(!(toggle_pref_flag in GLOB.vore_pref_types))
+				return FALSE
+			host.vore_pref_type_flags ^= GLOB.vore_pref_types[toggle_pref_flag]
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.vore_pref_type_flags = host.vore_pref_type_flags
+			unsaved_changes = TRUE
+			return TRUE
+		//Soulcatcher prefs
+		if("toggle_soulcatcher_allow_capture")
+			host.soulcatcher_pref_flags ^= SOULCATCHER_ALLOW_CAPTURE
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.soulcatcher_pref_flags = host.soulcatcher_pref_flags
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_soulcatcher_allow_transfer")
+			host.soulcatcher_pref_flags ^= SOULCATCHER_ALLOW_TRANSFER
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.soulcatcher_pref_flags = host.soulcatcher_pref_flags
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_soulcatcher_allow_takeover")
+			host.soulcatcher_pref_flags ^= SOULCATCHER_ALLOW_TAKEOVER
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.soulcatcher_pref_flags = host.soulcatcher_pref_flags
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_soulcatcher_allow_deletion")
+			var/current_number = global_flag_check(host.soulcatcher_pref_flags, SOULCATCHER_ALLOW_DELETION) + global_flag_check(host.soulcatcher_pref_flags, SOULCATCHER_ALLOW_DELETION_INSTANT)
+			switch(current_number)
+				if(0)
+					host.soulcatcher_pref_flags ^= SOULCATCHER_ALLOW_DELETION
+				if(1)
+					host.soulcatcher_pref_flags ^= SOULCATCHER_ALLOW_DELETION_INSTANT
+				if(2)
+					host.soulcatcher_pref_flags &= ~(SOULCATCHER_ALLOW_DELETION)
+					host.soulcatcher_pref_flags &= ~(SOULCATCHER_ALLOW_DELETION_INSTANT)
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.soulcatcher_pref_flags = host.soulcatcher_pref_flags
+			unsaved_changes = TRUE
+			return TRUE
+		if("adjust_own_size")
+			var/new_size = text2num(params["new_mob_size"])
+			new_size = clamp(new_size, RESIZE_MINIMUM_DORMS, RESIZE_MAXIMUM_DORMS)
+			if(istype(host, /mob/living))
+				var/mob/living/living_host = host
+				if(new_size == living_host.size_multiplier)
+					return FALSE
+				if(living_host.nutrition >= VORE_RESIZE_COST)
+					living_host.adjust_nutrition(-VORE_RESIZE_COST)
+					living_host.resize(new_size, uncapped = living_host.has_large_resize_bounds(), ignore_prefs = TRUE)
+			return TRUE
+		//Soulcatcher functions
+		if("soulcatcher_release_all")
+			host.soulgem.release_mobs()
+			return TRUE
+		if("soulcatcher_erase_all")
+			host.soulgem.erase_mobs()
+			return TRUE
+		if("soulcatcher_release")
+			host.soulgem.release_selected()
+			return TRUE
+		if("soulcatcher_transfer")
+			host.soulgem.transfer_selected()
+			return TRUE
+		if("soulcatcher_delete")
+			host.soulgem.delete_selected()
+			return TRUE
+		if("soulcatcher_transfer_control")
+			host.soulgem.take_control_selected()
+			return TRUE
+		if("soulcatcher_release_control")
+			host.soulgem.take_control_owner()
+			return TRUE
+		if("soulcatcher_select")
+			host.soulgem.selected_soul = locate(params["selected_soul"])
+			return TRUE
+		//Soulcatcher settings
+		if("soulcatcher_toggle")
+			host.soulgem.toggle_setting(SOULGEM_ACTIVE)
+			unsaved_changes = TRUE
+			return TRUE
+		if("soulcatcher_sfx")
+			var/obj/belly = locate(params["val"])
+			if(!istype(belly))
+				host.soulgem.update_linked_belly(null)
+				return TRUE
+			host.soulgem.update_linked_belly(belly)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_self_catching")
+			host.soulgem.toggle_setting(NIF_SC_CATCHING_ME)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_prey_catching")
+			host.soulgem.toggle_setting(NIF_SC_CATCHING_OTHERS)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_drain_catching")
+			host.soulgem.toggle_setting(SOULGEM_CATCHING_DRAIN)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_ghost_catching")
+			host.soulgem.toggle_setting(SOULGEM_CATCHING_GHOSTS)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_ext_hearing")
+			host.soulgem.toggle_setting(NIF_SC_ALLOW_EARS)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_ext_vision")
+			host.soulgem.toggle_setting(NIF_SC_ALLOW_EYES)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_mind_backup")
+			host.soulgem.toggle_setting(NIF_SC_BACKUPS)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_sr_projecting")
+			host.soulgem.toggle_setting(NIF_SC_PROJECTING)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_vore_sfx")
+			host.soulgem.toggle_setting(SOULGEM_SHOW_VORE_SFX)
+			unsaved_changes = TRUE
+			return TRUE
+		if("toggle_sr_vision")
+			host.soulgem.toggle_setting(SOULGEM_SEE_SR_SOULS)
+			unsaved_changes = TRUE
+			return TRUE
+		if("soulcatcher_rename")
+			var/new_name = params["val"]
+			if(!host.soulgem.rename(new_name))
+				return FALSE
+			unsaved_changes = TRUE
+			return TRUE
+		if(SC_INTERIOR_MESSAGE)
+			var/new_flavor = params["val"]
+			if(new_flavor)
+				unsaved_changes = TRUE
+				host.soulgem.adjust_interior(new_flavor)
+			return TRUE
+		if(SC_CAPTURE_MEESAGE)
+			var/message = params["val"]
+			if(message)
+				unsaved_changes = TRUE
+				host.soulgem.set_custom_message(message, SC_CAPTURE_MEESAGE)
+			return TRUE
+		if(SC_TRANSIT_MESSAGE)
+			var/message = params["val"]
+			if(message)
+				unsaved_changes = TRUE
+				host.soulgem.set_custom_message(message, SC_TRANSIT_MESSAGE)
+			return TRUE
+		if(SC_RELEASE_MESSAGE)
+			var/message = params["val"]
+			if(message)
+				unsaved_changes = TRUE
+				host.soulgem.set_custom_message(message, SC_RELEASE_MESSAGE)
+			return TRUE
+		if(SC_TRANSFERE_MESSAGE)
+			var/message = params["val"]
+			if(message)
+				unsaved_changes = TRUE
+				host.soulgem.set_custom_message(message, SC_TRANSFERE_MESSAGE)
+			return TRUE
+		if(SC_DELETE_MESSAGE)
+			var/message = params["val"]
+			if(message)
+				unsaved_changes = TRUE
+				host.soulgem.set_custom_message(message, SC_DELETE_MESSAGE)
+			return TRUE
+		if("preset")
+			var/raw_data = lowertext(params["color"])
+			var/index = lowertext(params["index"])
+			var/list/entries = splittext(preset_colors, ";")
+			while(LAZYLEN(entries) < 20)
+				entries += "#FFFFFF"
+			if(LAZYLEN(entries) > 20)
+				entries.Cut(21)
+			var/hex = sanitize_hexcolor(raw_data)
+			if (!hex || !isnum(index) || entries[index] == hex)
+				return
+			entries[index] = hex
+			preset_colors = entries.Join(";")
 			return TRUE
 
 /datum/vore_look/proc/pick_from_inside(mob/user, params)
@@ -448,11 +944,20 @@
 		return TRUE // Aren't here anymore, need to update menu
 
 	var/intent = "Examine"
-	if(isliving(target))
-		intent = tgui_alert(usr, "What do you want to do to them?","Query",list("Examine","Help Out","Devour"))
+	// Only allow indirect belly viewers to examine
+	if(user in OB)
+		if(isliving(target))
+			if(params["option"] in list("Examine","Help Out","Devour"))
+				intent = params["option"]
+			else
+				intent = tgui_alert(user, "What do you want to do to them?","Query",list("Examine","Help Out","Devour"))
 
-	else if(istype(target, /obj/item))
-		intent = tgui_alert(usr, "What do you want to do to that?","Query",list("Examine","Use Hand"))
+		else if(isitem(target))
+			if(params["option"] in list("Examine","Use Hand"))
+				intent = params["option"]
+			else
+				intent = tgui_alert(user, "What do you want to do to that?","Query",list("Examine","Use Hand"))
+	//End of indirect vorefx changes
 
 	switch(intent)
 		if("Examine") //Examine a mob inside another mob
@@ -460,536 +965,542 @@
 			if(!results || !results.len)
 				results = list("You were unable to examine that. Tell a developer!")
 			to_chat(user, jointext(results, "<br>"))
+			if(isliving(target))
+				var/mob/living/ourtarget = target
+				ourtarget.chat_healthbar(user, TRUE)
 			return TRUE
 
 		if("Use Hand")
 			if(host.stat)
-				to_chat(user, "<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user, span_warning("You can't do that in your state!"))
 				return TRUE
 
 			host.ClickOn(target)
 			return TRUE
 
 	if(!isliving(target))
-		return
+		return FALSE
 
 	var/mob/living/M = target
 	switch(intent)
 		if("Help Out") //Help the inside-mob out
 			if(host.stat || host.absorbed || M.absorbed)
-				to_chat(user, "<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user, span_warning("You can't do that in your state!"))
 				return TRUE
 
-			to_chat(user,"<font color='green'>You begin to push [M] to freedom!</font>")
-			to_chat(M,"[host] begins to push you to freedom!")
-			to_chat(OB.owner,"<span class='warning'>Someone is trying to escape from inside you!</span>")
+			to_chat(user,span_vnotice("[span_green("You begin to push [M] to freedom!")]"))
+			to_chat(M,span_vnotice("[host] begins to push you to freedom!"))
+			to_chat(OB.owner,span_vwarning("Someone is trying to escape from inside you!"))
 			sleep(50)
 			if(prob(33))
 				OB.release_specific_contents(M)
-				to_chat(user,"<font color='green'>You manage to help [M] to safety!</font>")
-				to_chat(M,"<font color='green'>[host] pushes you free!</font>")
-				to_chat(OB.owner,"<span class='alert'>[M] forces free of the confines of your body!</span>")
+				to_chat(user,span_vnotice("[span_green("You manage to help [M] to safety!")]"))
+				to_chat(M, span_vnotice("[span_green("[host] pushes you free!")]"))
+				to_chat(OB.owner,span_valert("[M] forces free of the confines of your body!"))
 			else
-				to_chat(user,"<span class='alert'>[M] slips back down inside despite your efforts.</span>")
-				to_chat(M,"<span class='alert'> Even with [host]'s help, you slip back inside again.</span>")
-				to_chat(OB.owner,"<font color='green'>Your body efficiently shoves [M] back where they belong.</font>")
+				to_chat(user,span_valert("[M] slips back down inside despite your efforts."))
+				to_chat(M,span_valert("Even with [host]'s help, you slip back inside again."))
+				to_chat(OB.owner,span_vnotice("[span_green("Your body efficiently shoves [M] back where they belong.")]"))
 			return TRUE
 
 		if("Devour") //Eat the inside mob
 			if(host.absorbed || host.stat)
-				to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user,span_warning("You can't do that in your state!"))
 				return TRUE
 
 			if(!host.vore_selected)
-				to_chat(user,"<span class='warning'>Pick a belly on yourself first!</span>")
+				to_chat(user,span_warning("Pick a belly on yourself first!"))
 				return TRUE
 
 			var/obj/belly/TB = host.vore_selected
-			to_chat(user,"<span class='warning'>You begin to [lowertext(TB.vore_verb)] [M] into your [lowertext(TB.name)]!</span>")
-			to_chat(M,"<span class='warning'>[host] begins to [lowertext(TB.vore_verb)] you into their [lowertext(TB.name)]!</span>")
-			to_chat(OB.owner,"<span class='warning'>Someone inside you is eating someone else!</span>")
+			to_chat(user,span_vwarning("You begin to [lowertext(TB.vore_verb)] [M] into your [lowertext(TB.name)]!"))
+			to_chat(M,span_vwarning("[host] begins to [lowertext(TB.vore_verb)] you into their [lowertext(TB.name)]!"))
+			to_chat(OB.owner,span_vwarning("Someone inside you is eating someone else!"))
 
 			sleep(TB.nonhuman_prey_swallow_time) //Can't do after, in a stomach, weird things abound.
 			if((host in OB) && (M in OB)) //Make sure they're still here.
-				to_chat(user,"<span class='warning'>You manage to [lowertext(TB.vore_verb)] [M] into your [lowertext(TB.name)]!</span>")
-				to_chat(M,"<span class='warning'>[host] manages to [lowertext(TB.vore_verb)] you into their [lowertext(TB.name)]!</span>")
-				to_chat(OB.owner,"<span class='warning'>Someone inside you has eaten someone else!</span>")
-				TB.nom_mob(M)
+				to_chat(user,span_vwarning("You manage to [lowertext(TB.vore_verb)] [M] into your [lowertext(TB.name)]!"))
+				to_chat(M,span_vwarning("[host] manages to [lowertext(TB.vore_verb)] you into their [lowertext(TB.name)]!"))
+				to_chat(OB.owner,span_vwarning("Someone inside you has eaten someone else!"))
+				if(M.absorbed)
+					M.absorbed = FALSE
+					OB.handle_absorb_langs(M, OB.owner)
+				TB.nom_atom(M)
 
 /datum/vore_look/proc/pick_from_outside(mob/user, params)
 	var/intent
 
 	//Handle the [All] choice. Ugh inelegant. Someone make this pretty.
 	if(params["pickall"])
-		intent = tgui_alert(usr, "Eject all, Move all?","Query",list("Eject all","Cancel","Move all"))
+		intent = params["intent"]
 		switch(intent)
-			if("Cancel")
-				return TRUE
-
-			if("Eject all")
+			if("eject_all")
 				if(host.stat)
-					to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+					to_chat(user,span_warning("You can't do that in your state!"))
 					return TRUE
 
 				host.vore_selected.release_all_contents()
 				return TRUE
 
-			if("Move all")
+			if("move_all")
 				if(host.stat)
-					to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+					to_chat(user,span_warning("You can't do that in your state!"))
 					return TRUE
 
-				var/obj/belly/choice = tgui_input_list(usr, "Move all where?","Select Belly", host.vore_organs)
+				var/obj/belly/choice = locate(params["val"])
 				if(!choice)
 					return FALSE
 
 				for(var/atom/movable/target in host.vore_selected)
-					to_chat(target,"<span class='warning'>You're squished from [host]'s [lowertext(host.vore_selected)] to their [lowertext(choice.name)]!</span>")
-					host.vore_selected.transfer_contents(target, choice, 1)
+					to_chat(target,span_vwarning("You're squished from [host]'s [lowertext(host.vore_selected)] to their [lowertext(choice.name)]!"))
+					// Send the transfer message to indirect targets as well. Slightly different message because why not.
+					to_chat(host.vore_selected.get_belly_surrounding(target.contents),span_warning("You're squished along with [target] from [host]'s [lowertext(host.vore_selected)] to their [lowertext(choice.name)]!"))
+					host.vore_selected.transfer_contents(target, choice, TRUE)
+				host.vore_selected.handle_visual_update()
 				return TRUE
-		return
+		return FALSE
 
 	var/atom/movable/target = locate(params["pick"])
 	if(!(target in host.vore_selected))
 		return TRUE // Not in our X anymore, update UI
-	var/list/available_options = list("Examine", "Eject", "Move")
+	var/list/available_options = list("Examine", "Eject", "Launch", "Move", "Transfer")
 	if(ishuman(target))
 		available_options += "Transform"
-	intent = tgui_alert(user, "What would you like to do with [target]?", "Vore Pick", available_options)
+		available_options += "Health Check"
+	// Add Reforming
+	if(isobserver(target) || istype(target,/obj/item/mmi))
+		available_options += "Reform"
+
+	if(isliving(target))
+		var/mob/living/datarget = target
+		if(datarget.client)
+			available_options += "Process"
+		available_options += "Health"
+	if((params["option"] in available_options))
+		intent = params["option"]
+	else
+		intent = tgui_input_list(user, "What would you like to do with [target]?", "Vore Pick", available_options)
 	switch(intent)
 		if("Examine")
 			var/list/results = target.examine(host)
 			if(!results || !results.len)
 				results = list("You were unable to examine that. Tell a developer!")
 			to_chat(user, jointext(results, "<br>"))
+			if(isliving(target))
+				var/mob/living/ourtarget = target
+				ourtarget.chat_healthbar(user, TRUE)
 			return TRUE
 
 		if("Eject")
 			if(host.stat)
-				to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user,span_warning("You can't do that in your state!"))
 				return TRUE
 
 			host.vore_selected.release_specific_contents(target)
 			return TRUE
 
+		if("Launch")
+			if(host.stat)
+				to_chat(user, span_warning("You can't do that in your state!"))
+				return TRUE
+
+			host.vore_selected.release_specific_contents(target)
+			target.throw_at(get_edge_target_turf(host, host.dir), 3, 1, host)
+			host.visible_message(span_danger("[host] launches [target]!"))
+			return TRUE
+
 		if("Move")
 			if(host.stat)
-				to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user,span_warning("You can't do that in your state!"))
 				return TRUE
-
-			var/obj/belly/choice = tgui_input_list(usr, "Move [target] where?","Select Belly", host.vore_organs)
+			var/obj/belly/choice = locate(params["targetBelly"])
+			if(!(choice in host.vore_organs))
+				choice = tgui_input_list(user, "Move [target] where?","Select Belly", host.vore_organs)
 			if(!choice || !(target in host.vore_selected))
 				return TRUE
-
-			to_chat(target,"<span class='warning'>You're squished from [host]'s [lowertext(host.vore_selected.name)] to their [lowertext(choice.name)]!</span>")
+			to_chat(target,span_vwarning("You're squished from [host]'s [lowertext(host.vore_selected.name)] to their [lowertext(choice.name)]!"))
+			// Send the transfer message to indirect targets as well. Slightly different message because why not.
+			to_chat(host.vore_selected.get_belly_surrounding(target.contents),span_warning("You're squished along with [target] from [host]'s [lowertext(host.vore_selected)] to their [lowertext(choice.name)]!"))
 			host.vore_selected.transfer_contents(target, choice)
+
+		if("Transfer")
+			if(host.stat)
+				to_chat(user,span_warning("You can't do that in your state!"))
+				return TRUE
+
+			var/mob/living/belly_owner = host
+
+			var/list/viable_candidates = list()
+			for(var/mob/living/candidate in range(1, host))
+				if(istype(candidate) && !(candidate == host))
+					if(candidate.vore_organs.len && candidate.feeding && !candidate.no_vore)
+						viable_candidates += candidate
+			if(!viable_candidates.len)
+				to_chat(user, span_notice("There are no viable candidates around you!"))
+				return TRUE
+			belly_owner = tgui_input_list(user, "Who do you want to receive the target?", "Select Predator", viable_candidates)
+
+			if(!belly_owner || !(belly_owner in range(1, host)))
+				return TRUE
+
+			var/obj/belly/choice = tgui_input_list(user, "Move [target] where?","Select Belly", belly_owner.vore_organs)
+			if(!choice || !(target in host.vore_selected) || !belly_owner || !(belly_owner in range(1, host)))
+				return TRUE
+
+			if(belly_owner != host)
+				to_chat(user, span_vnotice("Transfer offer sent. Await their response."))
+				var/accepted = tgui_alert(belly_owner, "[host] is trying to transfer [target] from their [lowertext(host.vore_selected.name)] into your [lowertext(choice.name)]. Do you accept?", "Feeding Offer", list("Yes", "No"))
+				if(accepted != "Yes")
+					to_chat(user, span_vwarning("[belly_owner] refused the transfer!!"))
+					return TRUE
+				if(!belly_owner || !(belly_owner in range(1, host)))
+					return TRUE
+				to_chat(target,span_vwarning("You're squished from [host]'s [lowertext(host.vore_selected.name)] to [belly_owner]'s [lowertext(choice.name)]!"))
+				to_chat(belly_owner,span_vwarning("[target] is squished from [host]'s [lowertext(host.vore_selected.name)] to your [lowertext(choice.name)]!"))
+				host.vore_selected.transfer_contents(target, choice)
+			else
+				to_chat(target,span_vwarning("You're squished from [host]'s [lowertext(host.vore_selected.name)] to their [lowertext(choice.name)]!"))
+				host.vore_selected.transfer_contents(target, choice)
 			return TRUE
 
 		if("Transform")
 			if(host.stat)
-				to_chat(user,"<span class='warning'>You can't do that in your state!</span>")
+				to_chat(user,span_warning("You can't do that in your state!"))
 				return TRUE
 
 			var/mob/living/carbon/human/H = target
 			if(!istype(H))
-				return
+				return FALSE
+
+			if(!H.allow_spontaneous_tf)
+				to_chat(user,span_warning("Your target can't be transformed!"))
+				return FALSE
 
 			var/datum/tgui_module/appearance_changer/vore/V = new(host, H)
 			V.tgui_interact(user)
 			return TRUE
 
-/datum/vore_look/proc/set_attr(mob/user, params)
-	if(!host.vore_selected)
-		tgui_alert_async(usr, "No belly selected to modify.")
+		// Add Reforming
+		if("Reform")
+			if(host.stat)
+				to_chat(user,span_warning("You can't do that in your state!"))
+				return TRUE
+
+			if(isobserver(target))
+				var/mob/observer/T = target
+				if(!ismob(T.body_backup) || GLOB.prevent_respawns.Find(T.mind.name) || ispAI(T.body_backup))
+					to_chat(user,span_warning("They don't seem to be reformable!"))
+					return TRUE
+
+				var/accepted = tgui_alert(T, "[host] is trying to reform your body! Would you like to get reformed inside [host]'s [lowertext(host.vore_selected.name)]?", "Reforming Attempt", list("Yes", "No"))
+				if(accepted != "Yes")
+					to_chat(user,span_warning("[T] refused to be reformed!"))
+					return TRUE
+				if(!isbelly(T.loc))
+					to_chat(user,span_warning("[T] is no longer inside to be reformed!"))
+					to_chat(T,span_warning("You can't be reformed outside of a belly!"))
+					return TRUE
+
+				if(isliving(T.body_backup))
+					var/mob/living/body_backup = T.body_backup
+					if(ishuman(body_backup))
+						var/mob/living/carbon/human/H = body_backup
+						H.setOxyLoss(0)
+						if(H.isSynthetic())
+							H.adjustToxLoss(-H.getToxLoss())
+						else
+							H.adjustToxLoss(-25)
+						if(H.health <= -H.getMaxHealth())
+							H.adjustBruteLoss(-25)
+							H.adjustFireLoss(-25)
+							H.adjustCloneLoss(-25)
+
+							//This looks how much health we need to get to 'barely in crit'
+							//We heal up to that point here, starting with toxins and moving up to the harder to heal types.
+							//Once we heal one type, we check again to see if we're still dead. If so, we heal the next type in the list.
+							if(H.health <= -H.getMaxHealth())
+								var/barely_in_crit = -(H.get_crit_point() - 1)
+								var/adjust_health = barely_in_crit - H.health
+								if(adjust_health < 0)
+									adjust_health *= -1
+
+								H.adjustToxLoss(adjust_health)
+								if(H.health <= -H.getMaxHealth())
+									H.adjustFireLoss(adjust_health)
+								if(H.health <= -H.getMaxHealth())
+									H.adjustBruteLoss(adjust_health)
+								if(H.health <= -H.getMaxHealth())
+									H.adjustCloneLoss(adjust_health)
+
+						body_backup.updatehealth()
+						// Now we do the check to see if we should revive...
+						var/should_proceed_with_revive = TRUE
+						var/obj/item/organ/internal/brain/brain = H.internal_organs_by_name[O_BRAIN]
+						should_proceed_with_revive &&= !H.should_have_organ(O_BRAIN) || (brain && (!istype(brain) || brain.defib_timer > 0))
+						if(!H.isSynthetic())
+							should_proceed_with_revive &&= !(HUSK in H.mutations) && H.can_defib
+						if(should_proceed_with_revive)
+							for(var/organ_tag in H.species.has_organ)
+								var/obj/item/organ/O = H.species.has_organ[organ_tag]
+								var/vital = initial(O.vital) //check for vital organs
+								if(vital)
+									O = H.internal_organs_by_name[organ_tag]
+									if(!O || O.damage > O.max_damage)
+										should_proceed_with_revive = FALSE
+										break
+						if(should_proceed_with_revive)
+							GLOB.dead_mob_list.Remove(H)
+							if((H in GLOB.living_mob_list) || (H in GLOB.dead_mob_list))
+								WARNING("Mob [H] was reformed but already in the living or dead list still!")
+							GLOB.living_mob_list += H
+
+							H.timeofdeath = 0
+							H.set_stat(UNCONSCIOUS) //Life() can bring them back to consciousness if it needs to.
+							H.failed_last_breath = 0 //So mobs that died of oxyloss don't revive and have perpetual out of breath.
+							H.reload_fullscreen()
+					else
+						body_backup.revive()
+					body_backup.forceMove(T.loc)
+					body_backup.enabled = TRUE
+					body_backup.ajourn = 0
+					body_backup.key = T.key
+					body_backup.teleop = null
+					T.body_backup = null
+					host.vore_selected.release_specific_contents(T, TRUE)
+					if(istype(body_backup, /mob/living/simple_mob))
+						var/mob/living/simple_mob/sm = body_backup
+						if(sm.icon_rest && sm.resting)
+							sm.icon_state = sm.icon_rest
+						else
+							sm.icon_state = sm.icon_living
+					T.update_icon()
+					announce_ghost_joinleave(T.mind, 0, "They now occupy their body again.")
+			else if(istype(target,/obj/item/mmi)) // A good bit of repeated code, sure, but... cleanest way to do this.
+				var/obj/item/mmi/MMI = target
+				if(!ismob(MMI.body_backup) || !MMI.brainmob.mind || GLOB.prevent_respawns.Find(MMI.brainmob.mind.name))
+					to_chat(user,span_warning("They don't seem to be reformable!"))
+					return TRUE
+				var/accepted = tgui_alert(MMI.brainmob, "[host] is trying to reform your body! Would you like to get reformed inside [host]'s [lowertext(host.vore_selected.name)]?", "Reforming Attempt", list("Yes", "No"))
+				if(accepted != "Yes")
+					to_chat(user,span_warning("[MMI] refused to be reformed!"))
+					return TRUE
+
+				if(isliving(MMI.body_backup))
+					var/mob/living/body_backup = MMI.body_backup
+					body_backup.enabled = TRUE
+					body_backup.forceMove(MMI.loc)
+					body_backup.ajourn = 0
+					body_backup.teleop = null
+					//And now installing the MMI into the body...
+					if(isrobot(body_backup)) //Just do the reverse of getting the MMI pulled out in /obj/belly/proc/digestion_death
+						var/mob/living/silicon/robot/R = body_backup
+						R.revive()
+						MMI.brainmob.mind.transfer_to(R)
+						MMI.loc = R
+						R.mmi = MMI
+						R.mmi.brainmob.add_language(LANGUAGE_ROBOT_TALK)
+					else //reference /datum/surgery_step/robotics/install_mmi/end_step
+						var/obj/item/organ/internal/mmi_holder/holder
+						if(istype(MMI, /obj/item/mmi/digital/posibrain))
+							var/obj/item/organ/internal/mmi_holder/posibrain/holdertmp = new(body_backup, 1)
+							holder = holdertmp
+						else if(istype(MMI, /obj/item/mmi/digital/robot))
+							var/obj/item/organ/internal/mmi_holder/robot/holdertmp = new(body_backup, 1)
+							holder = holdertmp
+						else
+							holder = new(body_backup, 1)
+						body_backup.internal_organs_by_name[O_BRAIN] = holder
+						MMI.loc = holder
+						holder.stored_mmi = MMI
+						holder.update_from_mmi()
+
+						if(MMI.brainmob && MMI.brainmob.mind)
+							MMI.brainmob.mind.transfer_to(body_backup)
+							body_backup.languages = MMI.brainmob.languages
+						//You've hopefully already named yourself, so... not implementing that bit.
+						var/mob/living/carbon/human/H = body_backup
+						body_backup.adjustBruteLoss(-6, TRUE)
+						body_backup.adjustFireLoss(-6, TRUE)
+						body_backup.setOxyLoss(0)
+						H.adjustToxLoss(-H.getToxLoss())
+						body_backup.adjustCloneLoss(-6)
+						body_backup.updatehealth()
+						// Now we do the check to see if we should revive...
+						var/should_proceed_with_revive = TRUE
+						var/obj/item/organ/internal/brain/brain = H.internal_organs_by_name[O_BRAIN]
+						should_proceed_with_revive &&= !H.should_have_organ(O_BRAIN) || (brain && brain.defib_timer > 0 )
+						if(should_proceed_with_revive)
+							for(var/organ_tag in H.species.has_organ)
+								var/obj/item/organ/O = H.species.has_organ[organ_tag]
+								var/vital = initial(O.vital) //check for vital organs
+								if(vital)
+									O = H.internal_organs_by_name[organ_tag]
+									if(!O || O.damage > O.max_damage)
+										should_proceed_with_revive = FALSE
+										break
+						if(should_proceed_with_revive)
+							GLOB.dead_mob_list.Remove(H)
+							if((H in GLOB.living_mob_list) || (H in GLOB.dead_mob_list))
+								WARNING("Mob [H] was defibbed but already in the living or dead list still!")
+							GLOB.living_mob_list += H
+
+							H.timeofdeath = 0
+							H.set_stat(UNCONSCIOUS) //Life() can bring them back to consciousness if it needs to.
+							H.failed_last_breath = 0 //So mobs that died of oxyloss don't revive and have perpetual out of breath.
+							H.reload_fullscreen()
+					MMI.body_backup = null
+			return TRUE
+		if("Health")
+			var/mob/living/ourtarget = target
+			to_chat(user, span_notice("Current health reading for \The [ourtarget]: [ourtarget.health] / [ourtarget.getMaxHealth()] "))
+			return TRUE
+		if("Process")
+			var/mob/living/ourtarget = target
+			var/list/process_options = list()
+
+			if(ourtarget.digestable)
+				process_options += "Digest"
+				process_options += "Break Bone"
+
+			if(ourtarget.absorbable)
+				process_options += "Absorb"
+
+			process_options += "Knockout" //Can't think of any mechanical prefs that would restrict this. Even if they are already asleep, you may want to make it permanent.
+
+			if(process_options.len)
+				process_options += "Cancel"
+			else
+				to_chat(user, span_vwarning("You cannot instantly process [ourtarget]."))
+				return FALSE
+
+			var/ourchoice = tgui_input_list(user, "How would you prefer to process \the [target]? This will perform the given action instantly if the prey accepts.","Instant Process", process_options)
+			if(!ourchoice)
+				return FALSE
+			if(!ourtarget.client)
+				to_chat(user, span_vwarning("You cannot instantly process [ourtarget]."))
+				return FALSE
+			var/obj/belly/b = ourtarget.loc
+			if(!istype(b) || b.owner != user)
+				to_chat(user, span_vwarning("[ourtarget] isn't in your belly."))
+				return FALSE
+			switch(ourchoice)
+				if("Digest")
+					return b.instant_digest(user, ourtarget)
+				if("Break Bone")
+					return b.instant_break_bone(user, ourtarget)
+				if("Absorb")
+					return b.instant_absorb(user, ourtarget)
+				if("Knockout")
+					return b.instant_knockout(user, ourtarget)
+				if("Cancel")
+					return FALSE
+		if("Health Check")
+			var/mob/living/carbon/human/H = target
+			var/target_health = round((H.health/H.getMaxHealth())*100)
+			var/condition
+			var/condition_consequences
+			to_chat(user, span_vwarning("\The [target] is at [target_health]% health."))
+			if(H.blinded)
+				condition += "blinded"
+				condition_consequences += "hear emotes"
+			if(H.paralysis)
+				if(condition)
+					condition += " and "
+					condition_consequences += " or "
+				condition += "paralysed"
+				condition_consequences += "make emotes"
+			if(H.sleeping)
+				if(condition)
+					condition += " and "
+					condition_consequences += " or "
+				condition += "sleeping"
+				condition_consequences += "hear or do anything"
+			if(condition)
+				to_chat(user, span_vwarning("\The [target] is currently [condition], they will not be able to [condition_consequences]."))
+			return FALSE
+
+/datum/vore_look/proc/perform_prey_ability(mob/living/user, params)
+	var/obj/belly/OB = locate(params["belly"])
+
+	if(!(user in OB))
+		return TRUE // Aren't here anymore, need to update menu
+
+	var/ability = params["ability"]
+	if(!(ability in list("devour_as_absorbed")))
 		return FALSE
 
-	var/attr = params["attribute"]
-	switch(attr)
-		if("b_name")
-			var/new_name = html_encode(input(usr,"Belly's new name:","New Name") as text|null)
+	switch(ability)
+		if("devour_as_absorbed")
+			if(!(OB.mode_flags & DM_FLAG_ABSORBEDVORE))
+				return FALSE
+			user.absorb_devour()
 
-			var/failure_msg
-			if(length(new_name) > BELLIES_NAME_MAX || length(new_name) < BELLIES_NAME_MIN)
-				failure_msg = "Entered belly name length invalid (must be longer than [BELLIES_NAME_MIN], no more than than [BELLIES_NAME_MAX])."
-			// else if(whatever) //Next test here.
+	return TRUE
+
+/datum/vore_look/proc/set_spont_belly(params)
+	switch(params["attribute"])
+		if("rear")
+			var/spont_target = html_encode(params["val"])
+			if(spont_target == "Current Selected")
+				host.spont_belly_rear = null
 			else
-				for(var/obj/belly/B as anything in host.vore_organs)
-					if(lowertext(new_name) == lowertext(B.name))
-						failure_msg = "No duplicate belly names, please."
-						break
-
-			if(failure_msg) //Something went wrong.
-				tgui_alert_async(user,failure_msg,"Error!")
-				return FALSE
-
-			host.vore_selected.name = new_name
-			. = TRUE
-		if("b_wetness")
-			host.vore_selected.is_wet = !host.vore_selected.is_wet
-			. = TRUE
-		if("b_wetloop")
-			host.vore_selected.wet_loop = !host.vore_selected.wet_loop
-			. = TRUE
-		if("b_mode")
-			var/list/menu_list = host.vore_selected.digest_modes.Copy()
-			var/new_mode = tgui_input_list(usr, "Choose Mode (currently [host.vore_selected.digest_mode])", "Mode Choice", menu_list)
-			if(!new_mode)
-				return FALSE
-
-			host.vore_selected.digest_mode = new_mode
-			. = TRUE
-		if("b_addons")
-			var/list/menu_list = host.vore_selected.mode_flag_list.Copy()
-			var/toggle_addon = tgui_input_list(usr, "Toggle Addon", "Addon Choice", menu_list)
-			if(!toggle_addon)
-				return FALSE
-			host.vore_selected.mode_flags ^= host.vore_selected.mode_flag_list[toggle_addon]
-			host.vore_selected.items_preserved.Cut() //Re-evaltuate all items in belly on
-			. = TRUE
-		if("b_item_mode")
-			var/list/menu_list = host.vore_selected.item_digest_modes.Copy()
-
-			var/new_mode = tgui_input_list(usr, "Choose Mode (currently [host.vore_selected.item_digest_mode])", "Mode Choice", menu_list)
-			if(!new_mode)
-				return FALSE
-
-			host.vore_selected.item_digest_mode = new_mode
-			host.vore_selected.items_preserved.Cut() //Re-evaltuate all items in belly on belly-mode change
-			. = TRUE
-		if("b_contaminates")
-			host.vore_selected.contaminates = !host.vore_selected.contaminates
-			. = TRUE
-		if("b_contamination_flavor")
-			var/list/menu_list = contamination_flavors.Copy()
-			var/new_flavor = tgui_input_list(usr, "Choose Contamination Flavor Text Type (currently [host.vore_selected.contamination_flavor])", "Flavor Choice", menu_list)
-			if(!new_flavor)
-				return FALSE
-			host.vore_selected.contamination_flavor = new_flavor
-			. = TRUE
-		if("b_contamination_color")
-			var/list/menu_list = contamination_colors.Copy()
-			var/new_color = tgui_input_list(usr, "Choose Contamination Color (currently [host.vore_selected.contamination_color])", "Color Choice", menu_list)
-			if(!new_color)
-				return FALSE
-			host.vore_selected.contamination_color = new_color
-			host.vore_selected.items_preserved.Cut() //To re-contaminate for new color
-			. = TRUE
-		if("b_egg_type")
-			var/list/menu_list = global_vore_egg_types.Copy()
-			var/new_egg_type = tgui_input_list(usr, "Choose Egg Type (currently [host.vore_selected.egg_type])", "Egg Choice", menu_list)
-			if(!new_egg_type)
-				return FALSE
-			host.vore_selected.egg_type = new_egg_type
-			. = TRUE
-		if("b_desc")
-			var/new_desc = html_encode(input(usr,"Belly Description ([BELLIES_DESC_MAX] char limit):","New Description",host.vore_selected.desc) as message|null)
-
-			if(new_desc)
-				new_desc = readd_quotes(new_desc)
-				if(length(new_desc) > BELLIES_DESC_MAX)
-					tgui_alert_async(usr, "Entered belly desc too long. [BELLIES_DESC_MAX] character limit.","Error")
-					return FALSE
-				host.vore_selected.desc = new_desc
-				. = TRUE
-		if("b_msgs")
-			tgui_alert(user,"Setting abusive or deceptive messages will result in a ban. Consider this your warning. Max 150 characters per message (500 for idle messages), max 10 messages per topic.","Really, don't.") // Should remain tgui_alert() (blocking)
-			var/help = " Press enter twice to separate messages. '%pred' will be replaced with your name. '%prey' will be replaced with the prey's name. '%belly' will be replaced with your belly's name. '%count' will be replaced with the number of anything in your belly (will not work for absorbed examine). '%countprey' will be replaced with the number of living prey in your belly (or absorbed prey for absorbed examine)."
-			switch(params["msgtype"])
-				if("dmp")
-					var/new_message = input(user,"These are sent to prey when they expire. Write them in 2nd person ('you feel X'). Avoid using %prey in this type."+help,"Digest Message (to prey)",host.vore_selected.get_messages("dmp")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"dmp")
-
-				if("dmo")
-					var/new_message = input(user,"These are sent to you when prey expires in you. Write them in 2nd person ('you feel X'). Avoid using %pred in this type."+help,"Digest Message (to you)",host.vore_selected.get_messages("dmo")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"dmo")
-
-				if("smo")
-					var/new_message = input(user,"These are sent to those nearby when prey struggles. Write them in 3rd person ('X's Y bulges')."+help,"Struggle Message (outside)",host.vore_selected.get_messages("smo")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"smo")
-
-				if("smi")
-					var/new_message = input(user,"These are sent to prey when they struggle. Write them in 2nd person ('you feel X'). Avoid using %prey in this type."+help,"Struggle Message (inside)",host.vore_selected.get_messages("smi")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"smi")
-
-				if("em")
-					var/new_message = input(user,"These are sent to people who examine you when this belly has contents. Write them in 3rd person ('Their %belly is bulging')."+help,"Examine Message (when full)",host.vore_selected.get_messages("em")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"em")
-
-				if("ema")
-					var/new_message = input(user,"These are sent to people who examine you when this belly has absorbed victims. Write them in 3rd person ('Their %belly is larger')."+help,"Examine Message (with absorbed victims)",host.vore_selected.get_messages("ema")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"ema")
-
-				if("im_digest")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Digest mode. Write them in 2nd person ('%pred's %belly squishes down on you.')."+help,"Idle Message (Digest)",host.vore_selected.get_messages("im_digest")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_digest")
-
-				if("im_hold")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Hold mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Hold)",host.vore_selected.get_messages("im_hold")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_hold")
-
-				if("im_absorb")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Absorb mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Absorb)",host.vore_selected.get_messages("im_absorb")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_absorb")
-
-				if("im_heal")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Heal mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Heal)",host.vore_selected.get_messages("im_heal")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_heal")
-
-				if("im_drain")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Drain mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Drain)",host.vore_selected.get_messages("im_drain")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_drain")
-
-				if("im_steal")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Size Steal mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Size Steal)",host.vore_selected.get_messages("im_steal")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_steal")
-
-				if("im_egg")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Encase In Egg mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Encase In Egg)",host.vore_selected.get_messages("im_egg")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_egg")
-
-				if("im_shrink")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Shrink mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Shrink)",host.vore_selected.get_messages("im_shrink")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_shrink")
-
-				if("im_grow")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Grow mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Grow)",host.vore_selected.get_messages("im_grow")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_grow")
-
-				if("im_unabsorb")
-					var/new_message = input(user,"These are sent to prey every minute when you are on Unabsorb mode. Write them in 2nd person ('%pred's %belly squishes down on you.')"+help,"Idle Message (Unabsorb)",host.vore_selected.get_messages("im_unabsorb")) as message
-					if(new_message)
-						host.vore_selected.set_messages(new_message,"im_unabsorb")
-
-				if("reset")
-					var/confirm = tgui_alert(user,"This will delete any custom messages. Are you sure?","Confirmation",list("Cancel","DELETE"))
-					if(confirm == "DELETE")
-						host.vore_selected.digest_messages_prey = initial(host.vore_selected.digest_messages_prey)
-						host.vore_selected.digest_messages_owner = initial(host.vore_selected.digest_messages_owner)
-						host.vore_selected.struggle_messages_outside = initial(host.vore_selected.struggle_messages_outside)
-						host.vore_selected.struggle_messages_inside = initial(host.vore_selected.struggle_messages_inside)
-						host.vore_selected.examine_messages = initial(host.vore_selected.examine_messages)
-						host.vore_selected.examine_messages_absorbed = initial(host.vore_selected.examine_messages_absorbed)
-						host.vore_selected.emote_lists = initial(host.vore_selected.emote_lists)
-			. = TRUE
-		if("b_verb")
-			var/new_verb = html_encode(input(usr,"New verb when eating (infinitive tense, e.g. nom or swallow):","New Verb") as text|null)
-
-			if(length(new_verb) > BELLIES_NAME_MAX || length(new_verb) < BELLIES_NAME_MIN)
-				tgui_alert_async(usr, "Entered verb length invalid (must be longer than [BELLIES_NAME_MIN], no longer than [BELLIES_NAME_MAX]).","Error")
-				return FALSE
-
-			host.vore_selected.vore_verb = new_verb
-			. = TRUE
-		if("b_fancy_sound")
-			host.vore_selected.fancy_vore = !host.vore_selected.fancy_vore
-			host.vore_selected.vore_sound = "Gulp"
-			host.vore_selected.release_sound = "Splatter"
-			// defaults as to avoid potential bugs
-			. = TRUE
-		if("b_release")
-			var/choice
-			if(host.vore_selected.fancy_vore)
-				choice = tgui_input_list(user,"Currently set to [host.vore_selected.release_sound]","Select Sound", fancy_release_sounds)
+				host.spont_belly_rear = spont_target
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.spont_belly_rear = host.spont_belly_rear
+			unsaved_changes = TRUE
+			return TRUE
+		if("front")
+			var/spont_target = html_encode(params["val"])
+			if(spont_target == "Current Selected")
+				host.spont_belly_front = null
 			else
-				choice = tgui_input_list(user,"Currently set to [host.vore_selected.release_sound]","Select Sound", classic_release_sounds)
-
-			if(!choice)
-				return FALSE
-
-			host.vore_selected.release_sound = choice
-			. = TRUE
-		if("b_releasesoundtest")
-			var/sound/releasetest
-			if(host.vore_selected.fancy_vore)
-				releasetest = fancy_release_sounds[host.vore_selected.release_sound]
+				host.spont_belly_front = spont_target
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.spont_belly_front = host.spont_belly_front
+			unsaved_changes = TRUE
+			return TRUE
+		if("left")
+			var/spont_target = html_encode(params["val"])
+			if(spont_target == "Current Selected")
+				host.spont_belly_left = null
 			else
-				releasetest = classic_release_sounds[host.vore_selected.release_sound]
-
-			if(releasetest)
-				SEND_SOUND(user, releasetest)
-			. = TRUE
-		if("b_sound")
-			var/choice
-			if(host.vore_selected.fancy_vore)
-				choice = tgui_input_list(user,"Currently set to [host.vore_selected.vore_sound]","Select Sound", fancy_vore_sounds)
+				host.spont_belly_left = spont_target
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.spont_belly_left = host.spont_belly_left
+			unsaved_changes = TRUE
+			return TRUE
+		if("right")
+			var/spont_target = html_encode(params["val"])
+			if(spont_target == "Current Selected")
+				host.spont_belly_right = null
 			else
-				choice = tgui_input_list(user,"Currently set to [host.vore_selected.vore_sound]","Select Sound", classic_vore_sounds)
+				host.spont_belly_right = spont_target
+			if(host.client.prefs_vr)
+				host.client.prefs_vr.spont_belly_right = host.spont_belly_right
+			unsaved_changes = TRUE
+			return TRUE
+	return FALSE
 
-			if(!choice)
-				return FALSE
+/datum/vore_look/proc/sanitize_fixed_list(list/messages, type, delim = "\n\n", limit)
+	if(!limit)
+		CRASH("[type] set message called without limit!")
+	VPPREF_MESSAGE_SANITY(type)
 
-			host.vore_selected.vore_sound = choice
-			. = TRUE
-		if("b_soundtest")
-			var/sound/voretest
-			if(host.vore_selected.fancy_vore)
-				voretest = fancy_vore_sounds[host.vore_selected.vore_sound]
-			else
-				voretest = classic_vore_sounds[host.vore_selected.vore_sound]
-			if(voretest)
-				SEND_SOUND(user, voretest)
-			. = TRUE
-		if("b_tastes")
-			host.vore_selected.can_taste = !host.vore_selected.can_taste
-			. = TRUE
-		if("b_bulge_size")
-			var/new_bulge = input(user, "Choose the required size prey must be to show up on examine, ranging from 25% to 200% Set this to 0 for no text on examine.", "Set Belly Examine Size.") as num|null
-			if(new_bulge == null)
-				return FALSE
-			if(new_bulge == 0) //Disable.
-				host.vore_selected.bulge_size = 0
-				to_chat(user,"<span class='notice'>Your stomach will not be seen on examine.</span>")
-			else if (!ISINRANGE(new_bulge,25,200))
-				host.vore_selected.bulge_size = 0.25 //Set it to the default.
-				to_chat(user,"<span class='notice'>Invalid size.</span>")
-			else if(new_bulge)
-				host.vore_selected.bulge_size = (new_bulge/100)
-			. = TRUE
-		if("b_display_absorbed_examine")
-			host.vore_selected.display_absorbed_examine = !host.vore_selected.display_absorbed_examine
-			. = TRUE
-		if("b_grow_shrink")
-			var/new_grow = input(user, "Choose the size that prey will be grown/shrunk to, ranging from 25% to 200%", "Set Growth Shrink Size.", host.vore_selected.shrink_grow_size) as num|null
-			if (new_grow == null)
-				return FALSE
-			if (!ISINRANGE(new_grow,25,200))
-				host.vore_selected.shrink_grow_size = 1 //Set it to the default
-				to_chat(user,"<span class='notice'>Invalid size.</span>")
-			else if(new_grow)
-				host.vore_selected.shrink_grow_size = (new_grow*0.01)
-			. = TRUE
-		if("b_nutritionpercent")
-			var/new_nutrition = input(user, "Choose the nutrition gain percentage you will recieve per tick from prey. Ranges from 0.01 to 100.", "Set Nutrition Gain Percentage.", host.vore_selected.nutrition_percent) as num|null
-			if(new_nutrition == null)
-				return FALSE
-			var/new_new_nutrition = CLAMP(new_nutrition, 0.01, 100)
-			host.vore_selected.nutrition_percent = new_new_nutrition
-			. = TRUE
-		if("b_burn_dmg")
-			var/new_damage = input(user, "Choose the amount of burn damage prey will take per tick. Ranges from 0 to 6.", "Set Belly Burn Damage.", host.vore_selected.digest_burn) as num|null
-			if(new_damage == null)
-				return FALSE
-			var/new_new_damage = CLAMP(new_damage, 0, 6)
-			host.vore_selected.digest_burn = new_new_damage
-			. = TRUE
-		if("b_brute_dmg")
-			var/new_damage = input(user, "Choose the amount of brute damage prey will take per tick. Ranges from 0 to 6", "Set Belly Brute Damage.", host.vore_selected.digest_brute) as num|null
-			if(new_damage == null)
-				return FALSE
-			var/new_new_damage = CLAMP(new_damage, 0, 6)
-			host.vore_selected.digest_brute = new_new_damage
-			. = TRUE
-		if("b_oxy_dmg")
-			var/new_damage = input(user, "Choose the amount of suffocation damage prey will take per tick. Ranges from 0 to 12.", "Set Belly Suffocation Damage.", host.vore_selected.digest_oxy) as num|null
-			if(new_damage == null)
-				return FALSE
-			var/new_new_damage = CLAMP(new_damage, 0, 12)
-			host.vore_selected.digest_oxy = new_new_damage
-		if("b_emoteactive")
-			host.vore_selected.emote_active = !host.vore_selected.emote_active
-			. = TRUE
-		if("b_emotetime")
-			var/new_time = input(user, "Choose the period it takes for idle belly emotes to be shown to prey. Measured in seconds, Minimum 1 minute, Maximum 10 minutes.", "Set Belly Emote Delay.", host.vore_selected.digest_brute)
-			if(new_time == null)
-				return FALSE
-			var/new_new_time = CLAMP(new_time, 60, 600)
-			host.vore_selected.emote_time = new_new_time
-			. = TRUE
-		if("b_escapable")
-			if(host.vore_selected.escapable == 0) //Possibly escapable and special interactions.
-				host.vore_selected.escapable = 1
-				to_chat(usr,"<span class='warning'>Prey now have special interactions with your [lowertext(host.vore_selected.name)] depending on your settings.</span>")
-			else if(host.vore_selected.escapable == 1) //Never escapable.
-				host.vore_selected.escapable = 0
-				to_chat(usr,"<span class='warning'>Prey will not be able to have special interactions with your [lowertext(host.vore_selected.name)].</span>")
-			else
-				tgui_alert_async(usr, "Something went wrong. Your stomach will now not have special interactions. Press the button enable them again and tell a dev.","Error") //If they somehow have a varable that's not 0 or 1
-				host.vore_selected.escapable = 0
-			. = TRUE
-		if("b_escapechance")
-			var/escape_chance_input = input(user, "Set prey escape chance on resist (as %)", "Prey Escape Chance") as num|null
-			if(!isnull(escape_chance_input)) //These have to be 'null' because both cancel and 0 are valid, separate options
-				host.vore_selected.escapechance = sanitize_integer(escape_chance_input, 0, 100, initial(host.vore_selected.escapechance))
-			. = TRUE
-		if("b_escapetime")
-			var/escape_time_input = input(user, "Set number of seconds for prey to escape on resist (1-60)", "Prey Escape Time") as num|null
-			if(!isnull(escape_time_input))
-				host.vore_selected.escapetime = sanitize_integer(escape_time_input*10, 10, 600, initial(host.vore_selected.escapetime))
-			. = TRUE
-		if("b_transferchance")
-			var/transfer_chance_input = input(user, "Set belly transfer chance on resist (as %). You must also set the location for this to have any effect.", "Prey Escape Time") as num|null
-			if(!isnull(transfer_chance_input))
-				host.vore_selected.transferchance = sanitize_integer(transfer_chance_input, 0, 100, initial(host.vore_selected.transferchance))
-			. = TRUE
-		if("b_transferlocation")
-			var/obj/belly/choice = tgui_input_list(usr, "Where do you want your [lowertext(host.vore_selected.name)] to lead if prey resists?","Select Belly", (host.vore_organs + "None - Remove" - host.vore_selected))
+	if(!islist(messages) || LAZYLEN(messages) != 10)
+		CRASH("[type] set message lists with invalid length!")
 
-			if(!choice) //They cancelled, no changes
-				return FALSE
-			else if(choice == "None - Remove")
-				host.vore_selected.transferlocation = null
-			else
-				host.vore_selected.transferlocation = choice.name
-			. = TRUE
-		if("b_absorbchance")
-			var/absorb_chance_input = input(user, "Set belly absorb mode chance on resist (as %)", "Prey Absorb Chance") as num|null
-			if(!isnull(absorb_chance_input))
-				host.vore_selected.absorbchance = sanitize_integer(absorb_chance_input, 0, 100, initial(host.vore_selected.absorbchance))
-			. = TRUE
-		if("b_digestchance")
-			var/digest_chance_input = input(user, "Set belly digest mode chance on resist (as %)", "Prey Digest Chance") as num|null
-			if(!isnull(digest_chance_input))
-				host.vore_selected.digestchance = sanitize_integer(digest_chance_input, 0, 100, initial(host.vore_selected.digestchance))
-			. = TRUE
-		if("b_fullscreen")
-			host.vore_selected.belly_fullscreen = params["val"]
-			. = TRUE
-		if("b_disable_hud")
-			host.vore_selected.disable_hud = !host.vore_selected.disable_hud
-			. = TRUE
-		if("b_del")
-			var/alert = tgui_alert(usr, "Are you sure you want to delete your [lowertext(host.vore_selected.name)]?","Confirmation",list("Cancel","Delete"))
-			if(!(alert == "Delete"))
-				return FALSE
+	for(var/i = 1, i <= messages.len, i++)
+		messages[i] = sanitize(messages[i], limit, FALSE, TRUE, FALSE) || ""
 
-			var/failure_msg = ""
+	switch(type)
+		if(GENERAL_EXAMINE_NUTRI)
+			host.nutrition_messages = messages
+		if(GENERAL_EXAMINE_WEIGHT)
+			host.weight_messages = messages
 
-			var/dest_for //Check to see if it's the destination of another vore organ.
-			for(var/obj/belly/B as anything in host.vore_organs)
-				if(B.transferlocation == host.vore_selected)
-					dest_for = B.name
-					failure_msg += "This is the destiantion for at least '[dest_for]' belly transfers. Remove it as the destination from any bellies before deleting it. "
-					break
-
-			if(host.vore_selected.contents.len)
-				failure_msg += "You cannot delete bellies with contents! " //These end with spaces, to be nice looking. Make sure you do the same.
-			if(host.vore_selected.immutable)
-				failure_msg += "This belly is marked as undeletable. "
-			if(host.vore_organs.len == 1)
-				failure_msg += "You must have at least one belly. "
-
-			if(failure_msg)
-				tgui_alert_async(user,failure_msg,"Error!")
-				return FALSE
-
-			qdel(host.vore_selected)
-			host.vore_selected = host.vore_organs[1]
-			. = TRUE
-
-	if(.)
-		unsaved_changes = TRUE
+#undef STATION_PREF_NAME
+#undef VORE_BELLY_TAB
+#undef VORE_INSIDE_TAB
+#undef SOULCATCHER_TAB
+#undef PREFERENCE_TAB
+#undef GENERAL_TAB

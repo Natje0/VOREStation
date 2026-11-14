@@ -15,8 +15,8 @@
 
 	var/obj/item/voice_changer/voice_holder
 
-/obj/item/rig_module/voice/New()
-	..()
+/obj/item/rig_module/voice/Initialize(mapload)
+	. = ..()
 	voice_holder = new(src)
 	voice_holder.active = 0
 
@@ -38,15 +38,15 @@
 		if("Enable")
 			active = 1
 			voice_holder.active = 1
-			to_chat(usr, "<font color='blue'>You enable the speech synthesiser.</font>")
+			to_chat(usr, span_blue("You enable the speech synthesiser."))
 		if("Disable")
 			active = 0
 			voice_holder.active = 0
-			to_chat(usr, "<font color='blue'>You disable the speech synthesiser.</font>")
+			to_chat(usr, span_blue("You disable the speech synthesiser."))
 		if("Set Name")
-			var/raw_choice = sanitize(input(usr, "Please enter a new name.")  as text|null, MAX_NAME_LEN)
+			var/raw_choice = tgui_input_text(usr, "Please enter a new name.", "Change name", voice_holder.voice, MAX_NAME_LEN)
 			if(!raw_choice)
 				return 0
 			voice_holder.voice = raw_choice
-			to_chat(usr, "<font color='blue'>You are now mimicking <B>[voice_holder.voice]</B>.</font>")
+			to_chat(usr, span_blue("You are now mimicking <B>[voice_holder.voice]</B>."))
 	return 1

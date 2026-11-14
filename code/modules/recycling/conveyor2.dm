@@ -14,7 +14,7 @@
 	layer = ABOVE_TURF_LAYER
 	anchored = TRUE
 	active_power_usage = 100
-	circuit = /obj/item/weapon/circuitboard/conveyor
+	circuit = /obj/item/circuitboard/conveyor
 	var/operating = OFF	// 1 if running forward, -1 if backwards, 0 if off
 	var/operable = 1	// true if can operate (no broken segments in this belt run)
 	var/forwards		// this is the default (forward) direction, set by the map dir
@@ -40,7 +40,7 @@
 
 	default_apply_parts()
 
-/obj/machinery/conveyor/proc/toggle_speed(var/forced)
+/obj/machinery/conveyor/proc/toggle_speed(forced)
 	if(forced)
 		speed_process = forced
 	else
@@ -51,7 +51,7 @@
 		update_active_power_usage(initial(idle_power_usage))
 	update()
 
-/obj/machinery/conveyor/proc/set_operating(var/new_operating)
+/obj/machinery/conveyor/proc/set_operating(new_operating)
 	if(new_operating == operating)
 		return // No change
 	operating = new_operating
@@ -68,7 +68,7 @@
 	update_dir()
 
 /obj/machinery/conveyor/proc/update_dir()
-	if(!(dir in cardinal)) // Diagonal. Forwards is *away* from dir, curving to the right.
+	if(!(dir in GLOB.cardinal)) // Diagonal. Forwards is *away* from dir, curving to the right.
 		forwards = turn(dir, 45)
 		backwards = turn(dir, 135)
 	else
@@ -111,6 +111,10 @@
 	spawn(1)	// slight delay to prevent infinite propagation due to map order	//TODO: please no spawn() in process(). It's a very bad idea
 		var/items_moved = 0
 		for(var/atom/movable/A in affecting)
+			if(istype(A,/obj/effect/abstract)) // Flashlight's lights are not physical objects
+				continue
+			if(A.is_incorporeal())
+				continue
 			if(!A.anchored)
 				if(A.loc == src.loc) // prevents the object from being affected if it's not currently here.
 					step(A,movedir)
@@ -119,7 +123,7 @@
 				break
 
 // attack with item, place item on conveyor
-/obj/machinery/conveyor/attackby(var/obj/item/I, mob/user)
+/obj/machinery/conveyor/attackby(obj/item/I, mob/user)
 	if(isrobot(user))	return //Carn: fix for borgs dropping their modules on conveyor belts
 	if(I.loc != user)	return // This should stop mounted modules ending up outside the module.
 
@@ -128,14 +132,14 @@
 	if(default_deconstruction_crowbar(user, I))
 		return
 
-	if(istype(I, /obj/item/device/multitool))
+	if(istype(I, /obj/item/multitool))
 		if(panel_open)
-			var/input = sanitize(input(usr, "What id would you like to give this conveyor?", "Multitool-Conveyor interface", id))
+			var/input = tgui_input_text(user, "What id would you like to give this conveyor?", "Multitool-Conveyor interface", id, MAX_MESSAGE_LEN)
 			if(!input)
 				to_chat(user, "No input found. Please hang up and try your call again.")
 				return
 			id = input
-			for(var/obj/machinery/conveyor_switch/C in machines)
+			for(var/obj/machinery/conveyor_switch/C in GLOB.machines)
 				if(C.id == id)
 					C.conveyors |= src
 			return
@@ -194,6 +198,10 @@
 	if((. = ..()))
 		update()
 
+#undef OFF
+#undef FORWARDS
+#undef BACKWARDS
+
 // the conveyor control switch
 //
 //
@@ -207,6 +215,7 @@
 	var/position = 0			// 0 off, -1 reverse, 1 forward
 	var/last_pos = -1			// last direction setting
 	var/operated = 1			// true if just operated
+	var/oneway = 0				// Voreadd: One way levels mid-round!
 
 	var/id = "" 				// must match conveyor IDs to control them
 
@@ -216,18 +225,18 @@
 
 
 
-/obj/machinery/conveyor_switch/Initialize()
+/obj/machinery/conveyor_switch/Initialize(mapload)
 	..()
 	update()
 	return INITIALIZE_HINT_LATELOAD
 
 /obj/machinery/conveyor_switch/LateInitialize()
 	conveyors = list()
-	for(var/obj/machinery/conveyor/C in machines)
+	for(var/obj/machinery/conveyor/C in GLOB.machines)
 		if(C.id == id)
 			conveyors += C
 
-/obj/machinery/conveyor_switch/proc/toggle_speed(var/forced)
+/obj/machinery/conveyor_switch/proc/toggle_speed(forced)
 	speed_active = !speed_active // switching gears
 	if(speed_active) // high gear
 		for(var/obj/machinery/conveyor/C in conveyors)
@@ -261,11 +270,11 @@
 // attack with hand, switch position
 /obj/machinery/conveyor_switch/attack_hand(mob/user)
 	if(!allowed(user))
-		to_chat(user, "<span class='warning'>Access denied.</span>")
+		to_chat(user, span_warning("Access denied."))
 		return
 
 	if(position == 0)
-		if(last_pos < 0)
+		if(last_pos < 0 || oneway == 1)
 			position = 1
 			last_pos = 0
 		else
@@ -279,58 +288,67 @@
 	update()
 
 	// find any switches with same id as this one, and set their positions to match us
-	for(var/obj/machinery/conveyor_switch/S in machines)
+	for(var/obj/machinery/conveyor_switch/S in GLOB.machines)
 		if(S.id == src.id)
 			S.position = position
 			S.update()
 
-/obj/machinery/conveyor_switch/attackby(var/obj/item/I, mob/user)
+/obj/machinery/conveyor_switch/attackby(obj/item/I, mob/user)
 	if(default_deconstruction_screwdriver(user, I))
 		return
 
-	if(istype(I, /obj/item/weapon/weldingtool))
-		if(panel_open)
-			var/obj/item/weapon/weldingtool/WT = I
-			if(!WT.remove_fuel(0, user))
-				to_chat(user, "The welding tool must be on to complete this task.")
-				return
-			playsound(src, WT.usesound, 50, 1)
-			if(do_after(user, 20 * WT.toolspeed))
-				if(!src || !WT.isOn()) return
-				to_chat(user, "<span class='notice'>You deconstruct the frame.</span>")
-				new /obj/item/stack/material/steel( src.loc, 2 )
-				qdel(src)
-				return
+	if(!panel_open) //It's probably better to just check this once instead of each time
+		return
 
-	if(istype(I, /obj/item/device/multitool))
-		if(panel_open)
-			var/input = sanitize(input(usr, "What id would you like to give this conveyor switch?", "Multitool-Conveyor interface", id))
-			if(!input)
-				to_chat(user, "No input found. Please hang up and try your call again.")
-				return
-			id = input
-			conveyors = list() // Clear list so they aren't double added.
-			for(var/obj/machinery/conveyor/C in machines)
-				if(C.id == id)
-					conveyors += C
+	if(I.has_tool_quality(TOOL_WELDER))
+		var/obj/item/weldingtool/WT = I.get_welder()
+		if(!WT.remove_fuel(0, user))
+			to_chat(user, "The welding tool must be on to complete this task.")
+			return
+		playsound(src, WT.usesound, 50, 1)
+		if(do_after(user, 2 SECONDS * WT.toolspeed, target = src))
+			if(!src || !WT.isOn()) return
+			to_chat(user, span_notice("You deconstruct the frame."))
+			new /obj/item/stack/material/steel( src.loc, 2 )
+			qdel(src)
 			return
 
+	if(I.has_tool_quality(TOOL_MULTITOOL))
+		var/input = tgui_input_text(user, "What id would you like to give this conveyor switch?", "Multitool-Conveyor interface", id, MAX_MESSAGE_LEN)
+		if(!input)
+			to_chat(user, "No input found. Please hang up and try your call again.")
+			return
+		id = input
+		conveyors = list() // Clear list so they aren't double added.
+		for(var/obj/machinery/conveyor/C in GLOB.machines)
+			if(C.id == id)
+				conveyors += C
+		return
+
+	if(I.has_tool_quality(TOOL_WRENCH))
+		if(oneway == 1)
+			to_chat(user, "You set the switch to two way operation.")
+			oneway = 0
+			playsound(src, I.usesound, 50, 1)
+			return
+		else
+			to_chat(user, "You set the switch to one way operation.")
+			oneway = 1
+			playsound(src, I.usesound, 50, 1)
+			return
+
+	if(I.has_tool_quality(TOOL_WIRECUTTER))
+		toggle_speed()
+		to_chat(user, "You adjust the speed of the conveyor switch")
+		return
+
+/obj/machinery/conveyor_switch/allow_pai_interaction(mob/living/silicon/pai/user, proximity_flag)
+	return proximity_flag
+
 /obj/machinery/conveyor_switch/oneway
-	var/convdir = 1 //Set to 1 or -1 depending on which way you want the convayor to go. (In other words keep at 1 and set the proper dir on the belts.)
-	desc = "A conveyor control switch. It appears to only go in one direction."
+	oneway = 1
 
-// attack with hand, switch position
-/obj/machinery/conveyor_switch/oneway/attack_hand(mob/user)
-	if(position == 0)
-		position = convdir
-	else
-		position = 0
-
-	operated = 1
-	update()
-
-	// find any switches with same id as this one, and set their positions to match us
-	for(var/obj/machinery/conveyor_switch/S in machines)
-		if(S.id == src.id)
-			S.position = position
-			S.update()
+/obj/machinery/conveyor_switch/examine()
+	.=..()
+	if(oneway == 1)
+		. += "It appears to only go in one direction."

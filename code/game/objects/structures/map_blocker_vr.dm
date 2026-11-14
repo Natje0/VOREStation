@@ -8,8 +8,11 @@
 	opacity = 0
 	density = TRUE
 	unacidable = TRUE
+	plane = PLANE_BUILDMODE
 
-/obj/effect/blocker/Initialize() // For non-gateway maps.
+/*	//VOREStation Edit
+/obj/effect/blocker/Initialize(mapload) // For non-gateway maps.
 	. = ..()
 	icon = null
 	icon_state = null
+*/

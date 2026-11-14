@@ -1,10 +1,11 @@
-/obj/structure/alien //Gurg Addition, framework for alien eggs.
+/obj/structure/alien //Gurg Addition, framework for alien structures.
 	name = "alien thing"
 	desc = "There's something alien about this."
 	icon = 'icons/mob/alien.dmi'
 	layer = ABOVE_JUNK_LAYER
 	var/health = 50
 	unacidable = TRUE
+	anchored = TRUE
 
 /obj/structure/alien/proc/healthcheck()
 	if(health <=0)
@@ -12,7 +13,7 @@
 		qdel(src)
 	return
 
-/obj/structure/alien/bullet_act(var/obj/item/projectile/Proj)
+/obj/structure/alien/bullet_act(obj/item/projectile/Proj)
 	health -= Proj.damage
 	..()
 	healthcheck()
@@ -32,28 +33,69 @@
 	healthcheck()
 	return
 
-/obj/structure/alien/hitby(AM as mob|obj)
+/obj/structure/alien/hitby(atom/movable/source, datum/thrownthing/throwingdatum)
 	..()
-	visible_message("<span class='danger'>\The [src] was hit by \the [AM].</span>")
-	var/tforce = 0
-	if(ismob(AM))
-		tforce = 10
-	else
-		tforce = AM:throwforce
+	visible_message(span_danger("\The [src] was hit by \the [source]."))
+	var/tforce
+	if(ismob(source))
+		tforce = 15
+	else if(isobj(source))
+		var/obj/object = source
+		if(isitem(object))
+			var/obj/item/our_item = object
+			tforce = our_item.throwforce
+		else
+			tforce = object.w_class
 	playsound(loc, 'sound/effects/attackblob.ogg', 100, 1)
 	health = max(0, health - tforce)
 	healthcheck()
 	..()
 	return
 
-/obj/structure/alien/attack_generic()
-	attack_hand(usr)
+/obj/structure/alien/attack_generic(mob/user, damage, attack_verb)
+	visible_message(span_danger("[user] [attack_verb] the [src]!"))
+	playsound(src, 'sound/effects/attackblob.ogg', 100, 1)
+	user.do_attack_animation(src)
+	health -= damage
+	healthcheck()
+	return
 
-/obj/structure/alien/attackby(var/obj/item/weapon/W, var/mob/user)
-	health = max(0, health - W.force)
-	playsound(loc, 'sound/effects/attackblob.ogg', 100, 1)
+/obj/structure/alien/attackby(obj/item/W as obj, mob/user as mob)
+
+	user.setClickCooldown(user.get_attack_speed(W))
+	var/aforce = W.force
+	health = max(0, health - aforce)
+	playsound(src, 'sound/effects/attackblob.ogg', 100, 1)
+	visible_message(span_danger("[user] attacks the [src]!"))
 	healthcheck()
 	..()
+	return
+
+/obj/structure/alien/attack_hand()
+	usr.setClickCooldown(DEFAULT_ATTACK_COOLDOWN)
+	if (HULK in usr.mutations)
+		visible_message(span_warning("[usr] destroys the [name]!"))
+		health = 0
+	else
+
+		// Aliens can get straight through these.
+		if(istype(usr,/mob/living/carbon))
+			var/mob/living/carbon/M = usr
+			if(locate(/obj/item/organ/internal/xenos/hivenode) in M.internal_organs)
+				visible_message (span_warning("[usr] strokes the [name] and it melts away!"), 1)
+				health = 0
+				healthcheck()
+				return
+			if(locate(/obj/item/organ/internal/xenos/resinspinner/replicant) in M.internal_organs)
+				if(!do_after(M, 3 SECONDS, target = src))
+					return
+				visible_message (span_warning("[usr] strokes the [name] and it melts away!"), 1)
+				health = 0
+				healthcheck()
+				return
+		visible_message(span_warning("[usr] claws at the [name]!"))
+		health -= rand(5,10)
+	healthcheck()
 	return
 
 /obj/structure/alien/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
